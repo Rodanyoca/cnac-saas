@@ -1,0 +1,1032 @@
+{
+  "generatedAt": "2026-09-24T21:07:15.715Z",
+  "workbooks": [
+    {
+      "name": "REFERENTIEL",
+      "block": "AUT-ADM",
+      "envKey": "GOOGLE_SHEETS_REFERENTIEL_SPREADSHEET_ID",
+      "title": "00_REFERENTIELS",
+      "sheets": [
+        {
+          "name": "SPORTS",
+          "headers": [
+            "id_sport",
+            "nom_sport",
+            "description",
+            "sport_olympique",
+            "statut"
+          ]
+        },
+        {
+          "name": "DISCIPLINES",
+          "headers": [
+            "id_discipline",
+            "id_sport",
+            "nom_discipline",
+            "observations"
+          ]
+        },
+        {
+          "name": "ENTITES",
+          "headers": [
+            "id_entite",
+            "id_categorie_entite",
+            "nom_officiel",
+            "sigle",
+            "adresse_siege",
+            "telephone",
+            "email",
+            "site_web",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "FEDERATIONS",
+          "headers": [
+            "id_federation",
+            "id_entite",
+            "id_sport",
+            "statut_reconnaissance_ministere",
+            "date_reconnaissance_nationale",
+            "statut_affiliation_coc",
+            "date_affiliation_coc",
+            "id_entite_continentale",
+            "date_affiliation_continentale",
+            "id_entite_internationale",
+            "date_affiliation_internationale",
+            "statut",
+            "observations",
+            "logo_drive_id",
+            "logo_drive_url"
+          ]
+        },
+        {
+          "name": "PROVINCES",
+          "headers": [
+            "id_province",
+            "nom_province",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "VILLES",
+          "headers": [
+            "id_ville",
+            "id_province",
+            "nom_ville",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "CATEGORIES_ENTITES",
+          "headers": [
+            "id_categorie_entite",
+            "nom_categorie_entite",
+            "observations"
+          ]
+        },
+        {
+          "name": "TYPES_STRUCTURE",
+          "headers": [
+            "id_type_structure",
+            "nom_type_structure",
+            "description",
+            "observations"
+          ]
+        },
+        {
+          "name": "CATEGORIES_CLUB",
+          "headers": [
+            "id_categorie_club",
+            "id_federation",
+            "nom_categorie_club",
+            "observations"
+          ]
+        },
+        {
+          "name": "SEXES",
+          "headers": [
+            "id_sexe",
+            "nom_sexe",
+            "observation"
+          ]
+        },
+        {
+          "name": "TYPES_ACTEURS",
+          "headers": [
+            "id_type_acteur",
+            "nom_type_acteur",
+            "description",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "CATEGORIES_AGE",
+          "headers": [
+            "id_categorie_age",
+            "id_federation",
+            "id_sport",
+            "id_discipline",
+            "nom_categorie_age",
+            "age_min",
+            "age_max",
+            "observations"
+          ]
+        },
+        {
+          "name": "SPECIALITES_MEDECIN",
+          "headers": [
+            "id_specialite_sante",
+            "nom_specialite_sante",
+            "description",
+            "observations"
+          ]
+        },
+        {
+          "name": "GRADES_ARBITRE",
+          "headers": [
+            "id_grade_arbitre",
+            "id_federation",
+            "id_sport",
+            "id_discipline",
+            "nom_grade",
+            "description",
+            "observations"
+          ]
+        },
+        {
+          "name": "FONCTIONS_OFFICIEL",
+          "headers": [
+            "id_fonction_acteur",
+            "nom_fonction",
+            "observations"
+          ]
+        },
+        {
+          "name": "TYPES_ACTIVITE",
+          "headers": [
+            "id_type_activite",
+            "nom_type_activite",
+            "id_federation",
+            "observation"
+          ]
+        },
+        {
+          "name": "ROLES_ENTITE_ACTIVITE",
+          "headers": [
+            "id_role_entite_activite",
+            "nom_role_entite_activite",
+            "observation"
+          ]
+        },
+        {
+          "name": "TYPES_DOCUMENT",
+          "headers": [
+            "id_type_document",
+            "nom_type_document",
+            "observations"
+          ]
+        },
+        {
+          "name": "SAISONS",
+          "headers": [
+            "id_saison",
+            "nom_saison",
+            "date_debut",
+            "date_fin",
+            "statut",
+            "observation"
+          ]
+        },
+        {
+          "name": "ROLES_STAFF_EQUIPE_NATIONALE",
+          "headers": [
+            "id_role_staff",
+            "id_type_acteur",
+            "nom_role_staff",
+            "observation"
+          ]
+        },
+        {
+          "name": "STATUTS_CAMPAGNE",
+          "headers": [
+            "id_statut_campagne",
+            "nom_statut_campagne",
+            "observation"
+          ]
+        },
+        {
+          "name": "TYPES_COMPETITION",
+          "headers": [
+            "id_type_competition",
+            "nom_type_competition",
+            "portee_sportive",
+            "niveau_competition",
+            "description",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "FORMATS_PARTICIPATION",
+          "headers": [
+            "id_format_participation",
+            "nom_format_participation",
+            "description",
+            "observations"
+          ]
+        },
+        {
+          "name": "UNITES_MESURE",
+          "headers": [
+            "id_unite_mesure",
+            "nom_unite_mesure",
+            "type_mesure",
+            "observations"
+          ]
+        },
+        {
+          "name": "TYPES_RESULTAT",
+          "headers": [
+            "id_type_resultat",
+            "id_federation",
+            "id_sport",
+            "id_discipline",
+            "nom_type_resultat",
+            "id_unite_mesure",
+            "sens_performance",
+            "description",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "EPREUVES",
+          "headers": [
+            "id_epreuve",
+            "id_federation",
+            "id_sport",
+            "id_discipline",
+            "nom_epreuve",
+            "id_format_participation",
+            "id_type_resultat",
+            "description",
+            "observations"
+          ]
+        },
+        {
+          "name": "RESULTATS_SYNTHETIQUES",
+          "headers": [
+            "id_resultat_synthetique",
+            "nom_resultat_synthetique",
+            "description",
+            "observations"
+          ]
+        },
+        {
+          "name": "DECISIONS_RESULTATS",
+          "headers": [
+            "id_decision_resultat",
+            "id_federation",
+            "id_sport",
+            "id_discipline",
+            "nom_decision",
+            "description",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "NIVEAUX_COMPETITION",
+          "headers": [
+            "id_niveau_competition",
+            "nom_niveau_competition",
+            "observation"
+          ]
+        },
+        {
+          "name": "STATUTS_COMPETITION",
+          "headers": [
+            "id_statut_competition",
+            "nom_statut_competition",
+            "observation"
+          ]
+        },
+        {
+          "name": "STATUTS_PARTICIPATION_ATHLETE",
+          "headers": [
+            "id_statut_participation",
+            "nom_statut_participation",
+            "observation"
+          ]
+        },
+        {
+          "name": "STATUTS_SELECTION",
+          "headers": [
+            "id_statut_selection",
+            "nom_statut_selection",
+            "observation"
+          ]
+        },
+        {
+          "name": "STATUTS_ENGAGEMENT_PROGRAMME",
+          "headers": [
+            "id_statut_engagement",
+            "nom_statut_engagement",
+            "observation"
+          ]
+        },
+        {
+          "name": "STATUTS_VALIDATION_RESULTAT",
+          "headers": [
+            "id_statut_validation_resultat",
+            "nom_statut_validation_resultat",
+            "observation"
+          ]
+        },
+        {
+          "name": "DISTINCTIONS_SPORTIVES",
+          "headers": [
+            "id_distinction",
+            "id_federation",
+            "id_sport",
+            "id_discipline",
+            "nom_distinction",
+            "description",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "STATUTS_RESULTAT",
+          "headers": [
+            "id_statut_resultat",
+            "nom_statut_resultat",
+            "observation"
+          ]
+        },
+        {
+          "name": "TYPES_ADVERSAIRES",
+          "headers": [
+            "id_type_adversaire",
+            "nom_type_adversaire",
+            "observation"
+          ]
+        },
+        {
+          "name": "STATUTS_PUBLICATION",
+          "headers": [
+            "id_statut_publication",
+            "nom_statut_publication",
+            "observation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "STRUCTURE_TERRITORIALE",
+      "block": "AUT-SPT",
+      "envKey": "GOOGLE_SHEETS_STRUCTURE_TERRITORIALE_SPREADSHEET_ID",
+      "title": "01_STRUCTURE_TERRITORIALE",
+      "sheets": [
+        {
+          "name": "HIERARCHIE",
+          "headers": [
+            "id_hierarchie",
+            "id_federation",
+            "id_type_structure",
+            "niveau_hierarchique",
+            "observations"
+          ]
+        },
+        {
+          "name": "LIGUES",
+          "headers": [
+            "id_ligue_coc",
+            "id_ligue_federation",
+            "id_federation",
+            "id_province",
+            "nom_ligue",
+            "sigle_ligue",
+            "date_creation",
+            "date_reconnaissance",
+            "telephone",
+            "email",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "ENTENTES",
+          "headers": [
+            "id_entente_coc",
+            "id_entente_federation",
+            "id_federation",
+            "id_structure_parent_coc",
+            "id_ville",
+            "nom_entente",
+            "sigle_entente",
+            "date_creation",
+            "date_reconnaissance",
+            "telephone",
+            "email",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "CERCLES",
+          "headers": [
+            "id_cercle_coc",
+            "id_cercle_federation",
+            "id_federation",
+            "id_ville",
+            "nom_cercle",
+            "sigle_cercle",
+            "date_creation",
+            "date_reconnaissance",
+            "telephone",
+            "email",
+            "statut",
+            "observations",
+            "id_structure_parent_coc"
+          ]
+        },
+        {
+          "name": "CLUBS",
+          "headers": [
+            "id_club_coc",
+            "id_club_federation",
+            "id_federation",
+            "id_structure_parent_coc",
+            "id_categorie_club",
+            "id_province",
+            "id_ville",
+            "nom_club",
+            "sigle_club",
+            "date_creation",
+            "date_affiliation",
+            "telephone",
+            "email",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "EQUIPES",
+          "headers": [
+            "id_equipe_coc",
+            "id_equipe_federation",
+            "id_federation",
+            "id_club_coc",
+            "id_sport",
+            "id_discipline",
+            "id_categorie_age",
+            "id_sexe",
+            "nom_equipe",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "PERSONNES_CONTACT_ENTITES",
+          "headers": [
+            "id_contact_entite",
+            "id_entite",
+            "id_type_acteur",
+            "id_acteur_coc",
+            "fonction_contact",
+            "est_contact_principal",
+            "statut",
+            "observation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ACTEURS",
+      "block": "AUT-SPT",
+      "envKey": "GOOGLE_SHEETS_ACTEURS_SPREADSHEET_ID",
+      "title": "02_ACTEURS",
+      "sheets": [
+        {
+          "name": "ATHLETES",
+          "headers": [
+            "id_athlete_coc",
+            "id_federation",
+            "id_athlete_federation",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "COACHS",
+          "headers": [
+            "id_coach_coc",
+            "id_federation",
+            "id_coach_federation",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "OFFICIELS",
+          "headers": [
+            "id_officiel_coc",
+            "id_entite",
+            "id_officiel_entite",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "MEDECINS",
+          "headers": [
+            "id_medecin_coc",
+            "id_entite",
+            "id_medecin_entite",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "id_specialite_sante",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "ARBITRES",
+          "headers": [
+            "id_arbitre_coc",
+            "id_federation",
+            "id_arbitre_federation",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "AUTRES",
+          "headers": [
+            "id_autre_acteur_coc",
+            "id_entite",
+            "id_autre_acteur_entite",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "type_autre_acteur",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ACTEURS_AFFILIATIONS",
+      "block": "AUT-SPT",
+      "envKey": "GOOGLE_SHEETS_ACTEURS_AFFILIATIONS_SPREADSHEET_ID",
+      "title": "03_ACTEURS_AFFILIATIONS",
+      "sheets": [
+        {
+          "name": "OFFICIELS_AFFILIATIONS",
+          "headers": [
+            "id_affiliation_officiel",
+            "id_officiel",
+            "id_fonction_officiel",
+            "id_entite",
+            "date_debut",
+            "date_fin",
+            "motif_fin",
+            "observation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ACTIVITES",
+      "block": "AUT-ADM",
+      "envKey": "GOOGLE_SHEETS_ACTIVITES_SPREADSHEET_ID",
+      "title": "05_ACTIVITES",
+      "sheets": [
+        {
+          "name": "ACTIVITES",
+          "headers": [
+            "id_activite",
+            "id_type_activite",
+            "id_entite_organisatrice",
+            "nom_activite",
+            "titre_public",
+            "resume",
+            "date_debut",
+            "date_fin",
+            "pays",
+            "ville",
+            "lieu",
+            "id_statut_activite",
+            "observation"
+          ]
+        },
+        {
+          "name": "ACTIVITES_ENTITES",
+          "headers": [
+            "id_activite_entite",
+            "id_activite",
+            "id_entite",
+            "id_role_entite_activite",
+            "observation"
+          ]
+        },
+        {
+          "name": "ACTIVITES_PARTICIPANTS",
+          "headers": [
+            "id_participation",
+            "id_activite",
+            "id_acteur_coc",
+            "id_type_acteur",
+            "id_activite_entite",
+            "observation"
+          ]
+        },
+        {
+          "name": "ACTIVITES_QUALIFICATIONS",
+          "headers": [
+            "id_qualification_activite",
+            "id_participation",
+            "type_qualification",
+            "id_valeur_avant",
+            "id_valeur_apres",
+            "observation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DOCUMENTS",
+      "block": "AUT-ADM",
+      "envKey": "GOOGLE_SHEETS_DOCUMENTS_SPREADSHEET_ID",
+      "title": "06_DOCUMENTS",
+      "sheets": [
+        {
+          "name": "DOCUMENTS",
+          "headers": [
+            "id_document",
+            "nom_document",
+            "id_type_document",
+            "date_document",
+            "id_entite_origine",
+            "type_objet_lie",
+            "id_objet_lie",
+            "version",
+            "drive_document_id",
+            "observation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "COMPETITIONS",
+      "block": "AUT-SPT",
+      "envKey": "GOOGLE_SHEETS_COMPETITIONS_SPREADSHEET_ID",
+      "title": "07_COMPETITIONS",
+      "sheets": [
+        {
+          "name": "COMPETITIONS",
+          "headers": [
+            "id_competition",
+            "nom_competition",
+            "id_type_competition",
+            "id_niveau_competition",
+            "edition",
+            "est_multisport",
+            "date_debut",
+            "date_fin",
+            "pays",
+            "ville",
+            "lieu",
+            "id_statut_competition",
+            "observation"
+          ]
+        },
+        {
+          "name": "PROGRAMMES_COMPETITION",
+          "headers": [
+            "id_programme_competition",
+            "id_competition",
+            "id_epreuve",
+            "id_categorie_age",
+            "id_sexe",
+            "date_debut",
+            "date_fin",
+            "observation"
+          ]
+        },
+        {
+          "name": "ENGAGEMENTS_CAMPAGNES_PROGRAMMES",
+          "headers": [
+            "id_engagement_campagne",
+            "id_programme_competition",
+            "id_campagne",
+            "id_statut_engagement",
+            "date_engagement",
+            "id_federation_source",
+            "reference_source",
+            "observation"
+          ]
+        },
+        {
+          "name": "PARTICIPATIONS_ACTEURS_COMPETITION",
+          "headers": [
+            "id_participation_acteur",
+            "id_engagement_campagne",
+            "id_acteur_coc",
+            "id_type_acteur",
+            "id_selection",
+            "id_affectation_staff",
+            "id_statut_participation",
+            "date_statut",
+            "id_participation_remplacement",
+            "observation"
+          ]
+        },
+        {
+          "name": "RESULTATS",
+          "headers": [
+            "id_resultat",
+            "id_resultat_logique",
+            "numero_version",
+            "id_resultat_precedent",
+            "est_version_courante",
+            "id_engagement_campagne",
+            "id_programme_competition",
+            "id_unite_participante",
+            "date_resultat",
+            "phase",
+            "type_adversaire",
+            "nom_adversaire",
+            "pays_adversaire",
+            "id_resultat_synthetique",
+            "valeur_coc",
+            "valeur_adversaire",
+            "id_unite_mesure",
+            "id_decision_resultat",
+            "id_statut_resultat",
+            "motif_correction",
+            "observation"
+          ]
+        },
+        {
+          "name": "UNITES_PARTICIPANTES",
+          "headers": [
+            "id_unite_participante",
+            "id_engagement_campagne",
+            "type_unite",
+            "id_participation_acteur",
+            "nom_unite",
+            "observation"
+          ]
+        },
+        {
+          "name": "MEMBRES_UNITES_PARTICIPANTES",
+          "headers": [
+            "id_membre_unite",
+            "id_unite_participante",
+            "id_participation_acteur",
+            "role_membre",
+            "observation"
+          ]
+        },
+        {
+          "name": "MEDAILLES",
+          "headers": [
+            "id_medaille",
+            "id_resultat_logique",
+            "id_distinction",
+            "date_obtention",
+            "observation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "EQUIPES_NATIONALES",
+      "block": "AUT-SPT",
+      "envKey": "GOOGLE_SHEETS_EQUIPES_NATIONALES_SPREADSHEET_ID",
+      "title": "08_EQUIPES_NATIONALES",
+      "sheets": [
+        {
+          "name": "EQUIPES_NATIONALES",
+          "headers": [
+            "id_equipe_nationale",
+            "id_federation",
+            "id_sport",
+            "id_discipline",
+            "nom_equipe_nationale",
+            "id_categorie_age",
+            "id_sexe",
+            "id_saison",
+            "statut",
+            "observation"
+          ]
+        },
+        {
+          "name": "CAMPAGNES_EQUIPES_NATIONALES",
+          "headers": [
+            "id_campagne",
+            "id_equipe_nationale",
+            "nom_campagne",
+            "date_debut",
+            "date_fin",
+            "objectif",
+            "id_statut_campagne",
+            "observation"
+          ]
+        },
+        {
+          "name": "SELECTIONS_ATHLETES",
+          "headers": [
+            "id_selection",
+            "id_campagne",
+            "id_athlete",
+            "id_poste",
+            "id_categorie_poids",
+            "id_grade_sportif",
+            "date_selection",
+            "id_statut_selection",
+            "observation"
+          ]
+        },
+        {
+          "name": "AFFECTATIONS_STAFF",
+          "headers": [
+            "id_affectation_staff",
+            "id_campagne",
+            "id_acteur_coc",
+            "id_type_acteur",
+            "id_role_staff",
+            "date_debut",
+            "date_fin",
+            "observation"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UTILISATEURS",
+      "block": "SUPER_ADMIN",
+      "envKey": "GOOGLE_SHEETS_USERS_SPREADSHEET_ID",
+      "title": "09_USERS",
+      "sheets": [
+        {
+          "name": "USERS",
+          "headers": [
+            "id_user",
+            "nom_complet",
+            "email",
+            "password_hash",
+            "type_user",
+            "est_super_admin",
+            "doit_changer_mot_de_passe",
+            "statut",
+            "date_creation",
+            "date_modification_mot_de_passe",
+            "derniere_connexion",
+            "session_version",
+            "date_expiration_acces_temporaire"
+          ]
+        },
+        {
+          "name": "USER_AUTORISATIONS",
+          "headers": [
+            "id_user_autorisation",
+            "id_user",
+            "id_bloc_autorisation",
+            "statut",
+            "date_debut",
+            "date_fin"
+          ]
+        },
+        {
+          "name": "AUTH_TENTATIVES",
+          "headers": [
+            "id_tentative",
+            "identifiant_hash",
+            "ip_hash",
+            "date_tentative",
+            "resultat",
+            "request_id"
+          ]
+        },
+        {
+          "name": "JOURNAL_OPERATIONS",
+          "headers": [
+            "id_operation",
+            "id_user",
+            "action",
+            "type_objet",
+            "id_objet",
+            "date_operation",
+            "resultat",
+            "request_id",
+            "details_non_sensibles"
+          ]
+        }
+      ]
+    }
+  ]
+}

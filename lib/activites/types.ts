@@ -1,0 +1,11 @@
+export const ACTIVITY_HEADERS = ["id_activite", "id_type_activite", "id_entite_organisatrice", "nom_activite", "titre_public", "resume", "date_debut", "date_fin", "pays", "ville", "lieu", "statut", "observations"] as const
+export const ACTIVITY_ENTITY_HEADERS = ["id_activite_entite", "id_activite", "id_entite", "id_role_entite_activite", "observation"] as const
+export const PARTICIPANT_HEADERS = ["id_participation", "id_activite", "id_acteur_coc", "id_type_acteur", "id_activite_entite", "observation"] as const
+export type ActivityStatus = "PLANIFIE" | "EN_COURS" | "TERMINE" | "REALISE" | "REPORTE" | "ANNULE" | "NON_RENSEIGNE"
+export type Activity = Record<(typeof ACTIVITY_HEADERS)[number], string> & { statut_normalise: ActivityStatus }
+export type ActivityEntity = Record<(typeof ACTIVITY_ENTITY_HEADERS)[number], string>
+export type ActivityParticipant = Record<(typeof PARTICIPANT_HEADERS)[number], string>
+export type ActivityOption = { id: string; label: string; secondary?: string }
+export type ActivityReferences = { entites: ActivityOption[]; types: ActivityOption[]; entityRoles: ActivityOption[]; actorTypes: ActivityOption[] }
+export const ACTOR_TYPES = ["ATHLETE", "COACH", "OFFICIEL", "MEDECIN", "ARBITRE", "AUTRE"] as const
+export type ActorType = (typeof ACTOR_TYPES)[number]

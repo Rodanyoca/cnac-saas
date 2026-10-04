@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server"
+import { getSession } from "@/lib/auth"
+import { resetUserAccess } from "@/lib/auth/account-workflows"
+import { createGoogleUsersSheetsAdapter } from "@/lib/users/google-adapter"
+import { getUserById } from "@/lib/users/data"
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) { const session = await getSession(); if (!session?.estSuperAdmin) return NextResponse.json({ error: "Accès refusé." }, { status: 403 }); const target = await getUserById((await params).id); if (!target) return NextResponse.json({ error: "Utilisateur introuvable." }, { status: 404 }); try { const body = await request.json(); if (typeof body.requestId !== "string" || !body.requestId.trim()) return NextResponse.json({ error: "Identifiant de requête obligatoire." }, { status: 400 }); const result = await resetUserAccess({ adapter: createGoogleUsersSheetsAdapter(), target, actorId: session.idUser, requestId: body.requestId.trim() }); return NextResponse.json(result.alreadyProcessed ? { ok: true, alreadyProcessed: true } : { ok: true, temporaryAccess: result.temporaryAccess, expiresAt: result.user.dateExpirationAccesTemporaire }) } catch { return NextResponse.json({ error: "Réinitialisation impossible." }, { status: 400 }) } }

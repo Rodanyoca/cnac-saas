@@ -1,0 +1,7 @@
+import assert from "node:assert/strict"
+import {readFile} from "node:fs/promises"
+import test from "node:test"
+const source=(path:string)=>readFile(new URL(`../../${path}`,import.meta.url),"utf8")
+test("la création de document utilise le volet latéral et respecte AUT-ADM",async()=>{const list=await source("app/dashboard/documents/documents-client.tsx"),page=await source("app/dashboard/documents/page.tsx");assert.match(list,/Sheet open=\{createOpen\}/);assert.match(list,/<DocumentForm references=\{references\}/);assert.match(list,/canEdit&&<Button/);assert.match(page,/canAccess\("AUT-ADM", "WRITE"\)/)})
+test("la liste Documents est responsive et son action est accessible",async()=>{const code=await source("app/dashboard/documents/documents-client.tsx");assert.match(code,/hidden lg:block/);assert.match(code,/lg:hidden/);assert.match(code,/Voir les détails de/);assert.match(code,/TooltipContent>Voir les détails/);assert.doesNotMatch(code,/overflow-x-auto/)})
+test("la modification et le remplacement du fichier sont masqués en lecture seule",async()=>{const code=await source("app/dashboard/documents/[id]/document-detail-client.tsx"),page=await source("app/dashboard/documents/[id]/page.tsx");assert.match(page,/canAccess\("AUT-ADM", "WRITE"\)/);assert.match(code,/canEdit && <Button onClick/);assert.match(code,/canEdit && <div className="mt-4/);assert.match(code,/Sheet open=\{editOpen\}/)})

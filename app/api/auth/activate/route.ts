@@ -1,0 +1,6 @@
+import { NextResponse } from "next/server"
+import { createSession, getSession } from "@/lib/auth"
+import { activateAccount } from "@/lib/auth/account-workflows"
+import { createGoogleUsersSheetsAdapter } from "@/lib/users/google-adapter"
+import { getUserById } from "@/lib/users/data"
+export async function POST(request: Request) { const session = await getSession(); if (!session?.doitChangerMotDePasse) return NextResponse.json({ error: "Accès invalide." }, { status: 401 }); try { const body = await request.json(); if (typeof body.temporaryAccess !== "string" || typeof body.newPassword !== "string" || body.newPassword !== body.confirmation) return NextResponse.json({ error: "Vérifiez les informations saisies." }, { status: 400 }); const user = await getUserById(session.idUser); if (!user) return NextResponse.json({ error: "Accès invalide." }, { status: 401 }); const updated = await activateAccount({ adapter: createGoogleUsersSheetsAdapter(), user, temporaryAccess: body.temporaryAccess, newPassword: body.newPassword }); await createSession({ idUser: updated.idUser, sessionVersion: updated.sessionVersion }); return NextResponse.json({ ok: true, redirectTo: "/dashboard" }) } catch { return NextResponse.json({ error: "Les informations saisies ne permettent pas d’activer le compte." }, { status: 400 }) } }

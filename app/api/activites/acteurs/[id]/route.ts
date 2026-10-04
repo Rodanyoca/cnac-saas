@@ -1,0 +1,4 @@
+import { NextResponse } from "next/server"
+import { getActivities, getActivityEntities, getActivityReferences, getParticipants } from "@/lib/activites/data"
+export const runtime = "nodejs"
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) { try { const { id } = await params; const [activities, participants, references, entities] = await Promise.all([getActivities(), getParticipants(undefined, id), getActivityReferences(), getActivityEntities()]); const byId = new Map(activities.map((x) => [x.id_activite, x])), entityById=new Map(entities.map(item=>[item.id_activite_entite,item])); return NextResponse.json({ rows: participants.map((participation) => ({ participation, activity: byId.get(participation.id_activite), entityRelation:entityById.get(participation.id_activite_entite) })).filter((x) => x.activity), references }) } catch { return NextResponse.json({ error: "Impossible de charger les activités." }, { status: 500 }) } }

@@ -1,0 +1,490 @@
+{
+  "verifiedAt": "2026-10-02T10:55:50.794Z",
+  "workbooks": [
+    {
+      "title": "00_CNAC_REFERENTIEL",
+      "spreadsheetId": "1_sR8AZEhwxELL48gSQrkNCM4b4ixF5tcrp9NfA78-08",
+      "locale": "fr_FR",
+      "timeZone": "Africa/Kinshasa",
+      "sheets": [
+        {
+          "name": "SPORTS",
+          "sheetId": 37010388,
+          "headers": [
+            "id_sport",
+            "nom_sport",
+            "description",
+            "sport_olympique",
+            "statut"
+          ]
+        },
+        {
+          "name": "DISCIPLINES",
+          "sheetId": 1328934567,
+          "headers": [
+            "id_discipline",
+            "id_sport",
+            "nom_discipline",
+            "observations"
+          ]
+        },
+        {
+          "name": "ENTITES",
+          "sheetId": 45707328,
+          "headers": [
+            "id_entite",
+            "id_categorie_entite",
+            "nom_officiel",
+            "sigle",
+            "adresse_siege",
+            "telephone",
+            "email",
+            "site_web",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "FEDERATIONS",
+          "sheetId": 1233740276,
+          "headers": [
+            "id_federation",
+            "id_entite",
+            "id_sport",
+            "statut_reconnaissance_ministere",
+            "date_reconnaissance_nationale",
+            "statut_affiliation_coc",
+            "date_affiliation_coc",
+            "id_entite_continentale",
+            "date_affiliation_continentale",
+            "id_entite_internationale",
+            "date_affiliation_internationale",
+            "statut",
+            "observations",
+            "logo_drive_id",
+            "logo_drive_url"
+          ]
+        },
+        {
+          "name": "PROVINCES",
+          "sheetId": 1552612068,
+          "headers": [
+            "id_province",
+            "nom_province",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "VILLES",
+          "sheetId": 1114747238,
+          "headers": [
+            "id_ville",
+            "id_province",
+            "nom_ville",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "CATEGORIES_ENTITES",
+          "sheetId": 1810133953,
+          "headers": [
+            "id_categorie_entite",
+            "nom_categorie_entite",
+            "observations"
+          ]
+        },
+        {
+          "name": "TYPES_STRUCTURE",
+          "sheetId": 1937171611,
+          "headers": [
+            "id_type_structure",
+            "nom_type_structure",
+            "description",
+            "observations"
+          ]
+        },
+        {
+          "name": "CATEGORIES_CLUB",
+          "sheetId": 2111834179,
+          "headers": [
+            "id_categorie_club",
+            "id_federation",
+            "nom_categorie_club",
+            "observations"
+          ]
+        },
+        {
+          "name": "SEXES",
+          "sheetId": 900071804,
+          "headers": [
+            "id_sexe",
+            "nom_sexe",
+            "observations"
+          ]
+        },
+        {
+          "name": "TYPES_ACTEURS",
+          "sheetId": 1420380645,
+          "headers": [
+            "id_type_acteur",
+            "nom_type_acteur",
+            "description",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "CATEGORIES_AGE",
+          "sheetId": 2073007025,
+          "headers": [
+            "id_categorie_age",
+            "id_federation",
+            "id_sport",
+            "id_discipline",
+            "nom_categorie_age",
+            "age_min",
+            "age_max",
+            "observations"
+          ]
+        },
+        {
+          "name": "SPECIALITES_MEDECIN",
+          "sheetId": 1916089259,
+          "headers": [
+            "id_specialite_sante",
+            "nom_specialite_sante",
+            "description",
+            "observations"
+          ]
+        },
+        {
+          "name": "GRADES_ARBITRE",
+          "sheetId": 358812010,
+          "headers": [
+            "id_grade_arbitre",
+            "id_federation",
+            "id_sport",
+            "id_discipline",
+            "nom_grade",
+            "description",
+            "observations"
+          ]
+        },
+        {
+          "name": "FONCTIONS_OFFICIEL",
+          "sheetId": 901020475,
+          "headers": [
+            "id_fonction_acteur",
+            "nom_fonction",
+            "observations"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "01_CNAC_STRUCTURE_TERRITORIALE",
+      "spreadsheetId": "1QkCjZtf9vEFh94UknSQSe7u0DEnKYBY7xGPA1DDfdd4",
+      "locale": "fr_FR",
+      "timeZone": "Europe/Paris",
+      "sheets": [
+        {
+          "name": "HIERARCHIE",
+          "sheetId": 1014583150,
+          "headers": [
+            "id_hierarchie",
+            "id_federation",
+            "id_type_structure",
+            "niveau_hierarchique",
+            "observations"
+          ]
+        },
+        {
+          "name": "LIGUES",
+          "sheetId": 1877893214,
+          "headers": [
+            "id_ligue_cnac",
+            "id_ligue_federation",
+            "id_federation",
+            "id_province",
+            "nom_ligue",
+            "sigle_ligue",
+            "date_creation",
+            "date_reconnaissance",
+            "telephone",
+            "email",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "ENTENTES",
+          "sheetId": 1825264447,
+          "headers": [
+            "id_entente_cnac",
+            "id_entente_federation",
+            "id_federation",
+            "id_structure_parent_cnac",
+            "id_ville",
+            "nom_entente",
+            "sigle_entente",
+            "date_creation",
+            "date_reconnaissance",
+            "telephone",
+            "email",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "CERCLES",
+          "sheetId": 731603810,
+          "headers": [
+            "id_cercle_cnac",
+            "id_cercle_federation",
+            "id_federation",
+            "id_ville",
+            "nom_cercle",
+            "sigle_cercle",
+            "date_creation",
+            "date_reconnaissance",
+            "telephone",
+            "email",
+            "statut",
+            "observations",
+            "id_structure_parent_cnac"
+          ]
+        },
+        {
+          "name": "CLUBS",
+          "sheetId": 2068299959,
+          "headers": [
+            "id_club_cnac",
+            "id_club_federation",
+            "id_federation",
+            "id_structure_parent_cnac",
+            "id_categorie_club",
+            "id_province",
+            "id_ville",
+            "nom_club",
+            "sigle_club",
+            "date_creation",
+            "date_affiliation",
+            "telephone",
+            "email",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "EQUIPES",
+          "sheetId": 974472188,
+          "headers": [
+            "id_equipe_cnac",
+            "id_equipe_federation",
+            "id_federation",
+            "id_club_cnac",
+            "id_sport",
+            "id_discipline",
+            "id_categorie_age",
+            "id_sexe",
+            "nom_equipe",
+            "statut",
+            "observations"
+          ]
+        },
+        {
+          "name": "PERSONNES_CONTACT_ENTITES",
+          "sheetId": 2109450001,
+          "headers": [
+            "id_contact_entite",
+            "id_entite",
+            "id_type_acteur",
+            "id_acteur_cnac",
+            "fonction_contact",
+            "est_contact_principal",
+            "statut",
+            "observations"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "02_CNAC_ACTEURS",
+      "spreadsheetId": "19krzRt2yK_tGfDQuzbdzQZlDV-58IbEEwj-e9IIvaWM",
+      "locale": "fr_FR",
+      "timeZone": "Europe/Paris",
+      "sheets": [
+        {
+          "name": "ATHLETES",
+          "sheetId": 0,
+          "headers": [
+            "id_athlete_cnac",
+            "id_federation",
+            "id_athlete_federation",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "COACHS",
+          "sheetId": 875642438,
+          "headers": [
+            "id_coach_cnac",
+            "id_federation",
+            "id_coach_federation",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "OFFICIELS",
+          "sheetId": 1541515358,
+          "headers": [
+            "id_officiel_cnac",
+            "id_entite",
+            "id_officiel_entite",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "MEDECINS",
+          "sheetId": 265539330,
+          "headers": [
+            "id_medecin_cnac",
+            "id_entite",
+            "id_medecin_entite",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "id_specialite_sante",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "ARBITRES",
+          "sheetId": 1366381336,
+          "headers": [
+            "id_arbitre_cnac",
+            "id_federation",
+            "id_arbitre_federation",
+            "id_national",
+            "id_international",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        },
+        {
+          "name": "AUTRES",
+          "sheetId": 1573606311,
+          "headers": [
+            "id_autre_acteur_cnac",
+            "id_entite",
+            "id_autre_acteur_entite",
+            "nom_complet",
+            "id_sexe",
+            "date_de_naissance",
+            "lieu_de_naissance",
+            "nationalite",
+            "type_autre_acteur",
+            "telephone",
+            "email",
+            "adresse",
+            "numero_passeport",
+            "date_de_delivrance_passeport",
+            "date_expiration_passeport",
+            "statut",
+            "avatar_drive_id",
+            "avatar_drive_url",
+            "passeport_drive_id",
+            "passeport_drive_url",
+            "observations"
+          ]
+        }
+      ]
+    }
+  ]
+}
