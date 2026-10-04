@@ -3,6 +3,7 @@
 import { apiFetch } from "@/lib/api/client"
 
 import Image from "next/image"
+import Link from "next/link"
 import { useRef, useState } from "react"
 import { Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react"
 
@@ -78,7 +79,7 @@ export default function LoginPage() {
   return (
     <main className={styles.page}>
       <section className={styles.hero} aria-labelledby="institution-title">
-        <Image src="/images/login/delegation-rdc.jpeg" alt="Délégation sportive de la République démocratique du Congo réunie dans un stade" fill priority sizes="(max-width: 1023px) 100vw, 62vw" className={styles.heroImage} />
+        <Image src="/education-antidopage-06.jpeg" alt="Participants et ambassadeurs réunis lors d’une rencontre d’éducation antidopage" fill priority sizes="(max-width: 1023px) 100vw, 62vw" className={styles.heroImage} />
         <div className={styles.heroShade} />
         <div className={styles.heroInner}>
           <div className={styles.brandLockup}>
@@ -141,6 +142,10 @@ export default function LoginPage() {
             <span>Administration CNAC</span>
           </div>
           <p className={styles.platformLabel}>Plateforme du référentiel sportif national</p>
+          <nav aria-label="Informations institutionnelles" className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-slate-400">
+            <Link href="/confidentialite" className="rounded underline-offset-4 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300">Confidentialité</Link>
+            <Link href="/conditions-utilisation" className="rounded underline-offset-4 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300">Conditions d’utilisation</Link>
+          </nav>
           <p className={styles.signature} aria-label="Design par DS Concept"><span>Design by</span><strong>DS Concept</strong></p>
         </div>
       </aside>

@@ -11,7 +11,7 @@ import { isCnacDemoMode } from "@/lib/demo-mode"
 import { isLocalAuthentication, resolveLocalSession } from "@/lib/auth/local-access"
 
 function isPublicRoute(pathname: string) {
-  return pathname === "/login" || pathname === "/service-indisponible" || pathname === "/api/auth/login"
+  return pathname === "/login" || pathname === "/confidentialite" || pathname === "/conditions-utilisation" || pathname === "/service-indisponible" || pathname === "/api/auth/login"
 }
 
 function isMinimalSessionRoute(pathname: string) {

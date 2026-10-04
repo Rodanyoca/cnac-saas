@@ -224,3 +224,21 @@ La fiche CNAC propose General, Affiliations, Localisation, Controles et AUT. Loc
 - La connexion locale prend priorite sur le passage automatique du mode demonstration; les routes protegees exigent le cookie et la deconnexion le supprime.
 - La connexion ouvre le tableau de bord et donne les droits administrateur CNAC. Les adaptateurs metier et classeurs CNAC restent inchanges.
 - `NEXT_PUBLIC_CNAC_LOCAL_AUTH=true` masque le bouton de demonstration sur la page de connexion.
+
+
+### 2026-10-04 - Image de connexion CNAC
+
+- La page `/login` utilise la nouvelle photographie `public/education-antidopage-06.jpeg`.
+- Texte alternatif adapte a la rencontre d’education antidopage ; disposition et styles conserves.
+- Ancienne image `public/images/login/delegation-rdc.jpeg` supprimee apres verification de ses usages.
+
+
+### 2026-10-04 - Confidentialite et conditions d’utilisation CNAC
+
+- Deux pages publiques avant connexion : `/confidentialite` et `/conditions-utilisation`, avec liens sur le login, navigation croisee, sommaire et mise en page responsive.
+- Textes institutionnels en version de relecture, dedies aux utilisateurs habilites du CNAC : finalites, categories de donnees, destinataires, droits, securite, usages autorises/interdits et gestion des acces.
+- Les modules Controles, AUT et Localisation sont presentes comme a venir ; aucune collecte de donnees medicales ou de localisation deja operationnelle n’est revendiquee.
+- Analyse du code : Google Sheets/Drive, hebergement prevu Vercel, cookie de session 8 heures, composant Web Analytics. Aucune region de stockage exclusivement nationale, purge automatique active ou garantie absolue de securite n’est affirmee.
+- Contacts officiels confirmes par l’utilisateur : contact@cnac-onadrdc.com et cnac2006.rdcongo@gmail.com, affiches sur les deux pages. Les fondements precis par traitement, les durees exactes, les destinataires et garanties de transfert restent a valider par le CNAC avant adoption des textes.
+- Aucune acceptation des conditions n’est enregistree par ces pages ; son integration au parcours d’authentification reste un lot ulterieur.
+- Sources consultees le 4 octobre 2026 : Code du numerique RDC (https://are.gouv.cd/download/ordonnance-loi-23-010-du-13-mars-portant-code-du-numerique/), standard AMA en vigueur (https://www.wada-ama.org/en/resources/world-anti-doping-code-and-international-standards/international-standard-protection), Vercel Web Analytics (https://vercel.com/docs/analytics/privacy-policy). Le standard AMA 2027 annonce pour le 1er janvier 2027 n’est pas presente comme deja en vigueur.
