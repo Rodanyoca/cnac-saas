@@ -5,6 +5,7 @@ import type { AffiliationReferences } from "@/lib/cnac/affiliation-model"
 import { AffiliationChoice } from "./athlete-affiliation"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { TeamTrainingFields } from "./team-training-fields"
 
 export function TeamSportingFields({ row, update, onReady }: { row: Record<string, string>; update: (key: string, value: string) => void; onReady?: (ready: boolean) => void }) {
   const [refs, setRefs] = useState<AffiliationReferences | null>(null)
@@ -36,5 +37,6 @@ export function TeamFormFields({ row, update, refs }: { row: Record<string, stri
     {choice("Sexe", "id_sexe", "SEXES", "id_sexe", "nom_sexe")}
     <AffiliationChoice label="Statut" value={row.statut || "ACTIF"} options={[{ id: "ACTIF", name: "Actif" }, { id: "INACTIF", name: "Inactif" }]} onChange={value => update("statut", value)} />
     <div className="space-y-2"><Label>Observations</Label><Input value={row.observations || ""} onChange={event => update("observations", event.target.value)} /></div>
+    <TeamTrainingFields row={row} update={update} />
   </>
 }

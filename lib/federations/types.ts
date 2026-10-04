@@ -77,6 +77,10 @@ export interface Cercle extends TerritorialMetadata {
 }
 
 export interface Equipe extends TerritorialMetadata {
+  lieu_entrainement?: string
+  adresse_entrainement?: string
+  fuseau_horaire_entrainement?: string
+  planning_entrainement_json?: string
   observations?: string
   nom_categorie_age?: string
   id_equipe_coc: string; id_equipe_federation: string; id_federation: string

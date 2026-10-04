@@ -9,6 +9,9 @@ export class CnacDataError extends Error {
 export type SheetRecord = Record<string, string>
 export type SheetTable = { headers: string[]; rows: SheetRecord[]; rowNumbers: number[] }
 
+// Colonnes médias déjà présentes : reconnues sans jamais modifier les en-têtes.
+const optionalColumns = (sheet: CnacSheet) => sheet === "FEDERATIONS" ? ["logo_drive_id", "logo_drive_url"] : sheet === "SPORTS" ? ["utilise_equipes"] : []
+
 // Les noms historiques restent un contrat UI interne, jamais des colonnes écrites.
 export const COLUMN_ALIASES: Record<string,string> = {
   id_ligue_coc: "id_ligue_cnac", id_entente_coc: "id_entente_cnac",
@@ -58,7 +61,7 @@ export function assertHeaders(sheet: CnacSheet, headers: string[]) {
 export function parseTable(sheet: CnacSheet, values: unknown[][]): SheetTable {
   const headers = (values[0] || []).map(value => String(value ?? "").trim())
   assertHeaders(sheet,headers)
-  const supportedColumns = new Set<string>([...CNAC_HEADERS[sheet], ...(sheet === "SPORTS" ? ["utilise_equipes"] : [])])
+  const supportedColumns = new Set<string>([...CNAC_HEADERS[sheet], ...optionalColumns(sheet)])
   const rowNumbers: number[] = []
   const rows = values.slice(1).flatMap((cells,offset) => {
     const row: SheetRecord = {}
@@ -80,7 +83,7 @@ export function updateCells(table: SheetTable, sheet: CnacSheet, idColumn: strin
   const positions = table.rows.map((row,index) => row[physicalId] === id ? index : -1).filter(index => index >= 0)
   if (!positions.length) throw new CnacDataError("NOT_FOUND", "Fiche introuvable.",404)
   if (positions.length !== 1) throw new CnacDataError("DUPLICATE_ID", "Identifiant dupliqué : écriture refusée.",409)
-  const supportedColumns = new Set<string>([...CNAC_HEADERS[sheet], ...(sheet === "SPORTS" ? ["utilise_equipes"] : [])])
+  const supportedColumns = new Set<string>([...CNAC_HEADERS[sheet], ...optionalColumns(sheet)])
   return updates.map(update => {
     const column = physicalColumn(update.column), index = table.headers.findIndex(header => canonicalSheetColumn(sheet, header) === column)
     if (index < 0 || !supportedColumns.has(column)) throw new CnacDataError("MAPPING_COLUMNS", `Colonne absente du schéma CNAC : ${column}.`,502)
@@ -93,7 +96,7 @@ export function appendValues(table: SheetTable, sheet: CnacSheet, input: SheetRe
   const row = Object.fromEntries(Object.entries(input).map(([key, value]) => [physicalColumn(key), value]))
   if (!row[CNAC_KEYS[sheet]]) throw new CnacDataError("MISSING_ID", "Identifiant interne obligatoire.")
   if (table.rows.some(item => item[CNAC_KEYS[sheet]] === row[CNAC_KEYS[sheet]])) throw new CnacDataError("DUPLICATE_ID", "Identifiant déjà utilisé.", 409)
-  const supportedColumns = new Set<string>([...CNAC_HEADERS[sheet], ...(sheet === "SPORTS" ? ["utilise_equipes"] : [])])
+  const supportedColumns = new Set<string>([...CNAC_HEADERS[sheet], ...optionalColumns(sheet)])
   Object.keys(row).forEach(column => {
     if (!table.headers.some(header => canonicalSheetColumn(sheet, header) === column) || !supportedColumns.has(column)) throw new CnacDataError("MAPPING_COLUMNS", `Colonne absente du schéma CNAC ou du classeur : ${column}.`, 502)
   })

@@ -31,23 +31,3 @@ export function logoDialogReducer(_state: LogoDialogState, action: LogoDialogAct
 
 export type FederationLogoUploadInput = { federationId: string; fileName: string; mimeType: string; buffer: Buffer; folderId: string }
 export type FederationLogoResult = { fileId: string; url: string }
-export type FederationLogoDependencies = {
-  find: (federationId: string) => Promise<{ logoDriveId: string } | undefined>
-  upload: (input: { fileName: string; mimeType: string; buffer: Buffer; folderId: string }) => Promise<FederationLogoResult>
-  update: (federationId: string, file: FederationLogoResult) => Promise<void>
-  remove: (fileId: string) => Promise<void>
-}
-
-export async function replaceFederationLogo(input: FederationLogoUploadInput, dependencies: FederationLogoDependencies): Promise<FederationLogoResult> {
-  const federation = await dependencies.find(input.federationId)
-  if (!federation) throw new Error("Fédération introuvable.")
-  const uploaded = await dependencies.upload({ fileName: input.fileName, mimeType: input.mimeType, buffer: input.buffer, folderId: input.folderId })
-  try {
-    await dependencies.update(input.federationId, uploaded)
-  } catch (error) {
-    await dependencies.remove(uploaded.fileId).catch(() => undefined)
-    throw error
-  }
-  if (federation.logoDriveId && federation.logoDriveId !== uploaded.fileId) await dependencies.remove(federation.logoDriveId).catch(() => undefined)
-  return uploaded
-}

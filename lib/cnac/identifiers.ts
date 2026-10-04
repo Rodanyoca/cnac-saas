@@ -28,3 +28,11 @@ export async function withCnacCreationQueue<T>(key: string, operation: () => Pro
 export function recordIds(rows: SheetRecord[], column: string) {
   return rows.map(row => row[column]).filter(Boolean)
 }
+
+const reservations = (globalThis as typeof globalThis & { __cnacPreparedIds?: Map<string, { id: string; expires: number }[]> }).__cnacPreparedIds ??= new Map<string, { id: string; expires: number }[]>()
+export function reserveCnacIdentifier(namespace: string, existing: string[], generate: (ids: string[]) => string) {
+  const pending = (reservations.get(namespace) || []).filter(item => item.expires > Date.now())
+  const id = generate([...existing, ...pending.map(item => item.id)])
+  pending.push({ id, expires: Date.now() + 8 * 60 * 60 * 1000 }); reservations.set(namespace, pending)
+  return id
+}

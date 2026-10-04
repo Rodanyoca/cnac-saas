@@ -8,8 +8,10 @@ import { CNAC_GROUPS,CNAC_KEYS } from "./schema"
 import { TERRITORIAL_SHEETS,territorialPatch,territorialEditorRow,type TerritorialKind } from "./territorial-model"
 import { errorResponse,writeAccess } from "./actor-handler"
 import { CNAC_ID_PREFIXES, nextCompactCnacId, recordIds, withCnacCreationQueue } from "./identifiers"
+import { prepareOrSave, readSaveBody } from "./media-save"
 
 export async function territorialWrite(resource:string,request:Request,method:"POST"|"PUT"|"DELETE") {
+  if (resource === "identification" && request.headers.get("content-type")?.includes("multipart/form-data")) return withCnacCreationQueue("media:FEDERATIONS", () => territorialWriteRecord(resource, request, method))
   if(method==="POST")return withCnacCreationQueue(`territorial:${resource}`,()=>territorialWriteRecord(resource,request,method))
   return territorialWriteRecord(resource,request,method)
 }
@@ -17,6 +19,23 @@ export async function territorialWrite(resource:string,request:Request,method:"P
 async function territorialWriteRecord(resource:string,request:Request,method:"POST"|"PUT"|"DELETE") {
   const denied=await writeAccess();if(denied)return denied
   try{
+    if (resource === "identification" && request.headers.get("content-type")?.includes("multipart/form-data")) {
+      if (method !== "PUT") throw new CnacDataError("METHOD", "Action non prévue.", 405)
+      const { body, file } = await readSaveBody(request, "logo"), id = String(body.id || "").trim()
+      const result = await prepareOrSave({ scope: `federation:PUT:${id}`, body, file, kind: "logo", buildRows: async () => {
+        const refs = await getSheetsRows({ sheetNames: ["FEDERATIONS", "ENTITES"], spreadsheetId: getReferentialSpreadsheetId(), bypassCache: true })
+        const current = refs.FEDERATIONS.find(row => row.id_federation === id)
+        if (!current) throw new CnacDataError("NOT_FOUND", "Fédération introuvable.", 404)
+        const allowed = ["statut_reconnaissance_ministere", "date_reconnaissance_nationale", "statut_affiliation_coc", "date_affiliation_coc", "id_entite_continentale", "date_affiliation_continentale", "id_entite_internationale", "date_affiliation_internationale", "statut", "observations"]
+        const patch = Object.fromEntries(Object.entries(body.row || {}).filter(([key]) => allowed.includes(key)).map(([key, value]) => [key, String(value ?? "").trim()]))
+        for (const key of ["id_entite_continentale", "id_entite_internationale"]) if (patch[key] && !refs.ENTITES.some(row => row.id_entite === patch[key])) throw new CnacDataError("ENTITY_INVALID", "Entité liée introuvable.")
+        for (const key of Object.keys(patch).filter(key => key.startsWith("date_"))) patch[key] = civilDate(patch[key])
+        return [{ sheet: "FEDERATIONS", id, mode: "update", values: { ...patch, id_federation: id }, before: current }]
+      } })
+      if (result instanceof Response) return result
+      revalidatePath("/dashboard/federations", "layout")
+      return NextResponse.json({ ok: true, row: result.rows[0] })
+    }
     let body:{id?:unknown;row?:Record<string,unknown>;federationId?:unknown}
     try{body=await request.json()}catch{throw new CnacDataError("INVALID_BODY","Corps JSON invalide.")}
     const id=String(body.id??"").trim(),input=body.row||{}

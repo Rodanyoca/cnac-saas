@@ -17,7 +17,7 @@ test("conserve les statuts et rattachements réels de FEDERATIONS sans inventer 
   assert.equal(result.id_entite_continentale, "ENT-C")
   assert.equal(result.id_entite_internationale, "ENT-I")
   assert.equal(result.logo_drive_id, "DRV-1")
-  assert.equal(result.logo_drive_url, "https://image/logo")
+  assert.equal(result.logo_drive_url, "/api/federations/logo/FED-1?v=DRV-1")
   assert.equal(result.categorie_entite, "")
   assert.equal(result.nom_federation, "")
   assert.equal(result.observations, "Observation fédérale")

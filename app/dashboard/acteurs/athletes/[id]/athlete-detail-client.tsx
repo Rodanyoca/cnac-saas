@@ -1,16 +1,18 @@
 "use client"
 import { AthleteAffiliationFields, AthleteAffiliationSummary } from "@/components/dashboard/athlete-affiliation"
+import { AthleteTeamTraining } from "@/components/dashboard/team-training-summary"
 import { updateAffiliation, type AffiliationReferences } from "@/lib/cnac/affiliation-model"
 import { displayCivilDate } from "@/lib/cnac/model"
 import { sexLabel } from "@/lib/cnac/display"
 import { sexId } from "@/lib/cnac/display"
-import { ActorMediaInput, PersonSexOptions } from "@/components/dashboard/cnac-actor-references"
+import { useCnacActorReferences, PersonSexOptions } from "@/components/dashboard/cnac-actor-references"
 
-import { apiFetch } from "@/lib/api/client"
+import { confirmedSave } from "@/lib/api/confirmed-save"
+import { ImageSelection } from "@/components/dashboard/image-selection"
 
-import { FileText, ImageIcon, Mail, MapPin, Pencil, Phone } from "lucide-react"
+import { Mail, MapPin, Pencil, Phone } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { ActorDetailLayout } from "@/components/dashboard/actor-detail-layout"
@@ -119,8 +121,11 @@ export function AthleteDetailClient({
   const [athlete, setAthlete] = useState(initialAthlete)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [passportFile, setPassportFile] = useState<File | null>(null)
+  const saveTicket = useRef("")
+  const [pendingSave, setPendingSave] = useState(false)
+  const { uploads } = useCnacActorReferences()
   const formFromAthlete = (): EditForm => ({
     id_club_cnac: athlete.idClub,
     id_equipe_cnac: athlete.idEquipe,
@@ -141,7 +146,7 @@ export function AthleteDetailClient({
     statut: athlete.statut === "inactif" ? "INACTIF" : "ACTIF",
   })
   const [form, setForm] = useState<EditForm>(formFromAthlete)
-  function openEditor() { setForm(formFromAthlete()); setAvatarFile(null); setPassportFile(null); setOpen(true) }
+  function openEditor() { setForm(formFromAthlete()); setAvatarFile(null); saveTicket.current = ""; setOpen(true) }
 
   const age = getAgeFromDateString(athlete.dateNaissance)
   const federationReference = federations.find((item) => item.id === athlete.idFederation)
@@ -165,49 +170,14 @@ export function AthleteDetailClient({
     setForm((current) => updateAffiliation(current, key, value))
   }
 
-  function selectFile(file: File | undefined, type: "avatar" | "passeport") {
-    if (!file) return
-    const accepted = type === "avatar"
-      ? ["image/png", "image/jpeg", "image/jpg", "image/webp"]
-      : ["application/pdf"]
-    if (!accepted.includes(file.type) || file.size > 4 * 1024 * 1024) {
-      toast.error(type === "avatar" ? "Avatar invalide ou supérieur à 4 Mo." : "Passeport PDF invalide ou supérieur à 4 Mo.")
-      return
-    }
-    if (type === "avatar") setAvatarFile(file)
-    else setPassportFile(file)
-  }
-
-  async function upload(file: File, mediaType: "avatar" | "passeport") {
-    const data = new FormData()
-    data.append("file", file)
-    data.append("mediaType", mediaType)
-    data.append("actorType", "athletes")
-    data.append("actorId", athlete.id)
-    const response = await apiFetch("/api/upload-media", { method: "POST", body: data })
-    const result = await response.json().catch(() => null)
-    if (!response.ok) throw new Error(result?.error || (response.status === 413 ? "Le fichier dépasse 4 Mo." : `Échec du média (${response.status})`))
-    if (!result) throw new Error("Réponse d’envoi invalide")
-    return result as { fileId: string; url: string }
-  }
-
   async function save() {
     if (!form.nom_complet || !form.id_federation || !form.id_sexe) {
       toast.error("Nom, fédération et sexe sont obligatoires.")
       return
     }
-    setSaving(true)
+    setSaving(true); setSaveError("")
     try {
-      const response = await apiFetch("/api/athletes", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: athlete.id, row: form }),
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || "Modification impossible")
-
-      const avatarResult = avatarFile ? await upload(avatarFile, "avatar") : null
-      const passportResult = passportFile ? await upload(passportFile, "passeport") : null
+      const result = await confirmedSave("/api/athletes", "PUT", { id: athlete.id, row: form }, avatarFile, "avatar", saveTicket)
       const selectedFederation = federations.find((item) => item.id === form.id_federation)
 
       setAthlete((current) => ({
@@ -228,8 +198,7 @@ export function AthleteDetailClient({
         email: form.email,
         adresse: form.adresse,
         statut: form.statut === "INACTIF" ? "inactif" : "actif",
-        avatarUrl: avatarResult?.url || current.avatarUrl,
-        urlPasseport: passportResult?.url || current.urlPasseport,
+        avatarUrl: result.row?.avatar_drive_url || current.avatarUrl,
         numeroPasseport: form.numéro_passeport,
         dateDelivrancePasseport: form.date_de_delivrance_passeport,
         dateExpirationPasseport: form["date_expiration passeport"],
@@ -238,11 +207,13 @@ export function AthleteDetailClient({
       toast.success("Profil de l’athlète modifié.")
       setOpen(false)
       setAvatarFile(null)
-      setPassportFile(null)
+      saveTicket.current = ""
       router.refresh()
     } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Enregistrement impossible.")
       toast.error(error instanceof Error ? error.message : String(error))
     } finally {
+      setPendingSave(Boolean(saveTicket.current))
       setSaving(false)
     }
   }
@@ -270,18 +241,19 @@ export function AthleteDetailClient({
         contactInfo={contactInfo}
         additionalSections={[
           { id: "affiliations", label: "Affiliations", content: <Card><CardHeader><CardTitle>Affiliations sportives</CardTitle></CardHeader><CardContent><AthleteAffiliationSummary detailed refs={affiliationRefs} value={{id_federation: athlete.idFederation, id_club_cnac: athlete.idClub, id_equipe_cnac: athlete.idEquipe}} /></CardContent></Card> },
-          ...(["localisation", "controles", "aut"] as const).map(id => ({ id, label: id === "localisation" ? "Localisation" : id === "controles" ? "Contrôles" : "AUT", content: <Card><CardHeader><CardTitle>{id === "localisation" ? "Localisation" : id === "controles" ? "Contr\u00f4les" : "AUT"}</CardTitle></CardHeader><CardContent className="py-10 text-center text-muted-foreground">Coming soon</CardContent></Card> })),
+          { id: "localisation", label: "Localisation", content: <AthleteTeamTraining teams={affiliationRefs.EQUIPES || []} affiliation={{ id_equipe_cnac: athlete.idEquipe, id_club_cnac: athlete.idClub, id_federation: athlete.idFederation }} /> },
+          ...(["controles", "aut"] as const).map(id => ({ id, label: id === "controles" ? "Contrôles" : "AUT", content: <Card><CardHeader><CardTitle>{id === "controles" ? "Contr\u00f4les" : "AUT"}</CardTitle></CardHeader><CardContent className="py-10 text-center text-muted-foreground">Coming soon</CardContent></Card> })),
         ]}
         profileActions={<Button onClick={openEditor}><Pencil className="mr-2 h-4 w-4" />Modifier</Button>}
       />
 
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={open} onOpenChange={value => { if (!saving && !saveTicket.current) setOpen(value) }}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
           <SheetHeader>
             <SheetTitle>Modifier l’athlète</SheetTitle>
             <SheetDescription>Les nouveaux médias remplaceront les fichiers Drive existants.</SheetDescription>
           </SheetHeader>
-          <div className="space-y-6 px-4">
+          <fieldset disabled={saving || pendingSave} className="min-w-0 space-y-6 px-4">
             <AthleteAffiliationFields value={form} refs={affiliationRefs} update={update} />
             <section className="space-y-4"><h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Identité</h3><div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2"><Label>Nom complet *</Label><Input value={form.nom_complet} onChange={(e) => update("nom_complet", e.target.value)} /></div>
@@ -305,13 +277,11 @@ export function AthleteDetailClient({
               <div className="space-y-2"><Label>Délivré le</Label><Input type="date" value={form.date_de_delivrance_passeport} onChange={(e) => update("date_de_delivrance_passeport", e.target.value)} /></div>
               <div className="space-y-2"><Label>Expire le</Label><Input type="date" value={form["date_expiration passeport"]} onChange={(e) => update("date_expiration passeport", e.target.value)} /></div>
             </div></section>
-            <section className="space-y-4"><div><h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Fichiers</h3><p className="mt-1 text-xs text-muted-foreground">Sélectionnez uniquement les fichiers à remplacer.</p></div><div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2 rounded-lg border border-border p-4"><div className="flex items-center gap-2"><ImageIcon className="h-4 w-4 text-primary" /><Label>Remplacer l’avatar</Label></div><ActorMediaInput type="file" accept=".png,.jpg,.jpeg,.webp" onChange={(e) => selectFile(e.target.files?.[0], "avatar")} /><p className="text-xs text-muted-foreground">{avatarFile?.name || "PNG, JPG ou WebP — 4 Mo maximum"}</p></div>
-              <div className="space-y-2 rounded-lg border border-border p-4"><div className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /><Label>Remplacer le passeport</Label></div><ActorMediaInput type="file" accept=".pdf,application/pdf" onChange={(e) => selectFile(e.target.files?.[0], "passeport")} /><p className="text-xs text-muted-foreground">{passportFile?.name || "PDF — 4 Mo maximum"}</p></div>
-            </div></section>
-          </div>
+            <section className="space-y-4"><ImageSelection label="Photo de profil" file={avatarFile} onChange={setAvatarFile} existingUrl={athlete.avatarUrl || ""} disabled={saving || pendingSave || !uploads.avatar} /></section>
+          </fieldset>
           <SheetFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Annuler</Button>
+            {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+            <Button variant="outline" disabled={saving || pendingSave} onClick={() => setOpen(false)}>Annuler</Button>
             <Button onClick={save} disabled={saving}>{saving ? "Enregistrement..." : "Enregistrer"}</Button>
           </SheetFooter>
         </SheetContent>

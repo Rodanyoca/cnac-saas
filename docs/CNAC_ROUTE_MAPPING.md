@@ -254,3 +254,44 @@ Les quatre feuilles d’authentification ont des en-têtes conformes, contrôlé
 ### Formulaire Équipe : suppression des champs en double
 
 Le dialogue d’ajout et de modification d’une équipe affiche les champs du composant `TeamSportingFields` une seule fois. L’éditeur conserve uniquement les identifiants CNAC et fédéral autour de ce composant ; il ne répète plus Nom, Club et Statut. Le club reste obligatoire, avec les mêmes valeurs et mappings d’enregistrement. Un test du dialogue complet contrôle l’unicité des champs dans les deux modes et la conservation des valeurs en modification.
+
+### 2026-10-05 — Médias CNAC : logos et photos de profil
+
+- Fédération : sélection facultative du logo en création et dans l’éditeur Identification ; logo conservé en l’absence de remplacement, aperçu et annulation de sélection. Les listes, fiches et paramètres affichent une image privée ou leur placeholder.
+- Athlète : sélection facultative de la photo de profil dans les deux formulaires ; identité, Club/Équipe et structure territoriale préservés. Les uploads de passeports et des autres acteurs restent désactivés.
+- Les colonnes existantes `logo_drive_id` / `logo_drive_url` de FEDERATIONS sont reconnues. ATHLETES reste strictement A:X (24 colonnes), Club en W et Équipe en X ; aucune colonne créée.
+- Routes privées : `/api/federations/logo/[id]` et `/api/athletes/[id]/avatar`. Session et droits AUT-SPT requis, contrôle du dossier CNAC avant lecture, aucune permission publique Drive créée ; URL de page Drive jamais utilisée comme image.
+- PNG, JPEG et WebP : limite de 4 Mo, signatures et décodage réel, refus des contenus endommagés et dimensions excessives. OAuth demeure exclusivement côté serveur, erreurs Google brutes exclues des réponses et logs.
+- Sauvegarde en deux étapes : préparation sans écriture avec ticket signé lié à l’utilisateur et au contenu, puis commit privé avec relecture de confirmation. Création ENTITES/FEDERATIONS et champs métier/média regroupés dans un batch Sheets atomique. Une reprise vérifie le même identifiant et le même fichier réservé avant toute nouvelle création ; conserver le formulaire ouvert en cas de confirmation indisponible.
+- Un ancien fichier n’est nettoyé qu’après confirmation, contrôle de son dossier et recherche des références dans les feuilles CNAC. Un fichier partagé est conservé ; si la recherche ou le nettoyage échoue, l’ancien fichier reste conservé. Une écriture non confirmable conserve le nouveau fichier pour la reprise, sans faux succès.
+- Vérification réelle uniquement en lecture : colonnes médias présentes dans FEDERATIONS (15 colonnes), ATHLETES (24 colonnes) conforme. Les deux accès Drive ont répondu HTTP 401 avec la configuration actuelle ; les essais d’écriture réelle sont bloqués jusqu’au rétablissement de l’autorisation Google. Aucun fichier ni donnée de test écrit dans les ressources réelles ; COC utilisé en lecture seule.
+
+Contrôles : lint sans erreur (deux avertissements existants), compilation et TypeScript validés, 50/50 tests d’intégration, 359/363 tests unitaires. Les quatre échecs préexistants concernent les compétitions et le formulaire de saison des équipes nationales. Le composant réel de sélection a été testé dans un navigateur à 1440 et 390 pixels : image existante, aperçu, remplacement, annulation, format interdit, limite de taille et placeholder.
+
+Fichiers du lot :
+
+- Formulaires et vues Athlètes : `app/dashboard/acteurs/athletes/athletes-client.tsx`, `page.tsx`, `[id]/athlete-detail-client.tsx` et `[id]/page.tsx`.
+- Fédération : `components/dashboard/federation-create-sheet.tsx`, `federation-logo-manager.tsx`, `app/dashboard/federations/[id]/page.tsx` et `[id]/parametres/parametres-client.tsx`.
+- Composants communs : `components/dashboard/image-selection.tsx`, `media-upload-dialog.tsx`, `cnac-actor-references.tsx` ; client `lib/api/confirmed-save.ts`.
+- API : `app/api/athletes/[id]/avatar/route.ts`, `app/api/federations/logo/[id]/route.ts`, `app/api/federations/route.ts` et `app/api/upload-media/route.ts`.
+- Coordination et mappings CNAC : `lib/cnac/media-save.ts`, `confirmed-save.ts`, `media-handler.ts`, `image-validation.ts`, `media-url.ts`, `media-config.ts`, `drive-ownership.ts`, `identifiers.ts`, `model.ts`, `sheets.ts`, `actor-handler.ts` et `territorial-handler.ts`.
+- Services Fédération et Drive : `lib/federations/creation.ts`, `mappers.ts`, `logo.ts`, `logo-handler.ts`, `logo-data.ts` et `lib/google/drive.ts` ; `package.json` et `package-lock.json` déclarent explicitement le décodeur Sharp déjà installé.
+- Tests : `tests/integration/cnac-media.test.ts` ; `tests/unit/cnac-confirmed-client.test.ts`, `cnac-image-validation.test.ts`, `cnac-connection.test.ts`, `federations-mappers.test.ts`, `federation-logo-handler.test.ts`, `federation-logo-replacement.test.ts`, `official-passport-upload.test.ts`.
+
+### 2026-10-05 — Lieu et planning hebdomadaire des équipes
+
+Les formulaires de création et modification des équipes comportent « Lieu et horaires d’entraînement » : lieu, adresse, fuseau IANA (dont Kinshasa et Lubumbashi) et créneaux hebdomadaires ajoutables, modifiables et supprimables. Aucun JSON n’est présenté à l’utilisateur. Les données restent facultatives et les anciennes lignes vides n’obtiennent aucun horaire ou fuseau fictif.
+
+EQUIPES est lu et écrit sur A:O, quinze colonnes. Les quatre champs existants L:O sont reconnus par les types, mappings et payloads ; aucun en-tête ajouté par l’application. Une validation commune frontend/serveur impose les jours 1–7, HH:mm, une fin après le début, l’absence de doublons et de chevauchements par jour et un fuseau valide pour un planning renseigné. Les heures restent locales, sans conversion en dates UTC. Les créneaux consécutifs et plusieurs créneaux par jour sont autorisés.
+
+Les modifications partielles conservent les champs absents ; une chaîne vide ou `[]` supprime explicitement le contenu concerné. Un planning historique illisible reste intact lors d’une modification sans rapport et déclenche un message d’anomalie. Son remplacement demande une action explicite dans le formulaire. Les erreurs Sheets ne produisent pas de succès ; les caches des équipes, fédérations et fiches Athlètes sont invalidés après écriture réussie.
+
+Le détail d’équipe et l’onglet Localisation de l’athlète affichent « Entraînements habituels de l’équipe », le lieu, l’adresse, le fuseau et les horaires groupés du lundi au dimanche. La localisation utilise l’équipe active, vérifiée avec le club et la fédération, et suit les changements d’affiliation. Aucun champ ajouté à ATHLETES, qui reste A:X. Les états sans équipe, sans planning et avec anomalie sont explicites ; ce planning ne confirme pas la présence individuelle. Contrôles et AUT restent « Coming soon ».
+
+Fichiers de ce lot :
+
+- Modèle et Sheets : `lib/cnac/team-training.ts`, `schema.ts`, `sheets.ts`, `territorial-model.ts` ; `lib/federations/types.ts`, `mappers.ts`, `schema.ts`.
+- Formulaires et affichage : `components/dashboard/team-training-fields.tsx`, `team-training-summary.tsx`, `team-sporting-fields.tsx` ; `app/dashboard/federations/[id]/parametres/parametres-client.tsx`, `app/dashboard/federations/[id]/structures/[typeId]/[structureId]/page.tsx`, `app/dashboard/acteurs/athletes/[id]/athlete-detail-client.tsx`.
+- Tests : `tests/unit/cnac-team-training.test.ts`, `cnac-affiliation.test.ts`, `tests/integration/cnac-territorial-divisions.test.ts` ; documentation dans ce fichier.
+
+Vérifications : build de production réussi, 53/53 tests d’intégration, 374/378 tests unitaires (les quatre échecs préexistants concernent les compétitions et équipes nationales), TypeScript validé, lint sans erreur avec deux avertissements préexistants. Playwright vérifie les composants réels à 1440 et 390 px : préchargement, réinitialisation, ajout, modification, suppression, chevauchement, préservation/correction explicite d’un planning illisible et changement d’équipe active, sans débordement ni erreur JavaScript. Les sauvegardes/rechargements sont testés avec un transport Sheets en mémoire ; aucune donnée de test écrite dans les classeurs réels, aucune modification du COC.

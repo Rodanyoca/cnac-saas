@@ -1,3 +1,4 @@
+import { cnacMediaUrl } from "@/lib/cnac/media-url"
 import { loadAffiliationReferences } from "@/lib/cnac/affiliation-data"
 import { CnacSourceError } from "@/components/dashboard/cnac-source-error"
 import { cnacError } from "@/lib/cnac/errors"
@@ -48,7 +49,7 @@ async function AthleteDetailPage({ params }: { params: Promise<{ id: string }> }
     email: row.email || "",
     adresse: row.adresse || "",
     statut: row.statut?.toLowerCase() || undefined,
-    avatarUrl: row.avatar_drive_url || null,
+    avatarUrl: cnacMediaUrl("avatar", row.id_athlete_cnac || row.id_athlete_coc, row.avatar_drive_id || "") || null,
     urlPasseport: row.passeport_drive_url || null,
     numeroPasseport: row.numero_passeport || "",
     dateDelivrancePasseport: row.date_de_delivrance_passeport || "",

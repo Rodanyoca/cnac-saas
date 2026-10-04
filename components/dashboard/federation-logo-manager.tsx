@@ -1,6 +1,6 @@
 "use client"
 
-import { apiFetch } from "@/lib/api/client"
+import { confirmedSave } from "@/lib/api/confirmed-save"
 
 import { useEffect, useReducer, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
@@ -16,6 +16,7 @@ export function FederationLogoManager({ federationId, federationName, initials, 
 }) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
+  const ticket = useRef("")
   const [state, dispatch] = useReducer(logoDialogReducer, { open: false, phase: "selection", error: null })
   const [file, setFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState("")
@@ -30,7 +31,7 @@ export function FederationLogoManager({ federationId, federationName, initials, 
     if (inputRef.current) inputRef.current.value = ""
   }
 
-  function close() { resetFile(); dispatch({ type: "close" }) }
+  function close() { if (state.phase === "uploading" || ticket.current) return; ticket.current = ""; resetFile(); dispatch({ type: "close" }) }
 
   function selectFile(event: React.ChangeEvent<HTMLInputElement>) {
     const selected = event.target.files?.[0]
@@ -46,11 +47,7 @@ export function FederationLogoManager({ federationId, federationName, initials, 
     if (!file) return
     dispatch({ type: "upload" })
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      const response = await apiFetch(`/api/federations/logo/${encodeURIComponent(federationId)}`, { method: "POST", body: formData })
-      const result = await response.json().catch(() => null)
-      if (!response.ok) throw new Error(result?.error || "Le logo n’a pas pu être envoyé.")
+      const result = await confirmedSave(`/api/federations/logo/${encodeURIComponent(federationId)}`, "POST", {}, file, "file", ticket)
       setLogoUrl(result.url)
       dispatch({ type: "success" })
       router.refresh()

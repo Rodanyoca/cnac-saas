@@ -3,14 +3,15 @@ import { AthleteAffiliationFields } from "@/components/dashboard/athlete-affilia
 import { updateAffiliation, type AffiliationReferences } from "@/lib/cnac/affiliation-model"
 import { civilDate } from "@/lib/cnac/model"
 import { sexCode as displaySexe } from "@/lib/cnac/display"
-import { ActorMediaInput, PersonSexOptions } from "@/components/dashboard/cnac-actor-references"
+import { useCnacActorReferences, PersonSexOptions } from "@/components/dashboard/cnac-actor-references"
 
-import { apiFetch } from "@/lib/api/client"
+import { confirmedSave } from "@/lib/api/confirmed-save"
+import { ImageSelection } from "@/components/dashboard/image-selection"
 
 import Link from "next/link"
-import { Eye, FileText, ImageIcon, Plus, Search } from "lucide-react"
+import { Eye, Plus, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 
 import { Header } from "@/components/dashboard/header"
@@ -145,9 +146,12 @@ export function AthletesClient({
   const [statusFilter, setStatusFilter] = useState("TOUS")
   const [editorOpen, setEditorOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState("")
   const [form, setForm] = useState<AthleteForm>(emptyForm)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [passportFile, setPassportFile] = useState<File | null>(null)
+  const saveTicket = useRef("")
+  const [pendingSave, setPendingSave] = useState(false)
+  const { uploads } = useCnacActorReferences()
 
   const filteredAthletes = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase("fr")
@@ -181,38 +185,11 @@ export function AthletesClient({
   }
 
   function closeEditor() {
+    if (saveTicket.current) return
     setEditorOpen(false)
     setForm(emptyForm)
     setAvatarFile(null)
-    setPassportFile(null)
-  }
-
-  function selectFile(file: File | undefined, mediaType: "avatar" | "passeport") {
-    if (!file) return
-    const accepted = mediaType === "avatar"
-      ? ["image/png", "image/jpeg", "image/jpg", "image/webp"]
-      : ["application/pdf"]
-    if (!accepted.includes(file.type)) {
-      toast.error(mediaType === "avatar" ? "Utilisez une image PNG, JPG ou WebP." : "Le passeport doit être un PDF.")
-      return
-    }
-    if (file.size > 4 * 1024 * 1024) {
-      toast.error("Le fichier ne doit pas dépasser 4 Mo.")
-      return
-    }
-    if (mediaType === "avatar") setAvatarFile(file)
-    else setPassportFile(file)
-  }
-
-  async function uploadMedia(file: File, mediaType: "avatar" | "passeport", athleteId: string) {
-    const data = new FormData()
-    data.append("file", file)
-    data.append("mediaType", mediaType)
-    data.append("actorType", "athletes")
-    data.append("actorId", athleteId)
-    const response = await apiFetch("/api/upload-media", { method: "POST", body: data })
-    const result = await response.json().catch(() => null)
-    if (!response.ok) throw new Error(result?.error || (response.status === 413 ? "Le fichier dépasse 4 Mo." : `Échec de l'envoi du fichier ${mediaType} (${response.status})`))
+    saveTicket.current = ""
   }
 
   async function save() {
@@ -227,36 +204,17 @@ export function AthletesClient({
       return
     }
 
-    setSaving(true)
+    setSaving(true); setSaveError("")
     try {
-      const response = await apiFetch("/api/athletes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ row: form }),
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || "Création impossible")
-
-      const athleteId = String(result.row?.id_athlete_coc || "")
-      const uploads = [
-        avatarFile ? uploadMedia(avatarFile, "avatar", athleteId) : null,
-        passportFile ? uploadMedia(passportFile, "passeport", athleteId) : null,
-      ].filter(Boolean) as Promise<void>[]
-      const uploadResults = await Promise.allSettled(uploads)
-      const failedUploads = uploadResults.filter((item) => item.status === "rejected")
-
-      if (failedUploads.length) {
-        const reason = failedUploads[0].reason
-        const detail = reason instanceof Error ? reason.message : String(reason || "Erreur inconnue")
-        toast.warning(`Athlète créé, mais ${failedUploads.length} fichier(s) n'ont pas pu être envoyé(s) : ${detail}`)
-      } else {
-        toast.success("Athlète ajouté avec succès.")
-      }
+      await confirmedSave("/api/athletes", "POST", { row: form }, avatarFile, "avatar", saveTicket)
+      toast.success("Athlète ajouté avec succès.")
       closeEditor()
       router.refresh()
     } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Enregistrement impossible.")
       toast.error(error instanceof Error ? error.message : String(error))
     } finally {
+      setPendingSave(Boolean(saveTicket.current))
       setSaving(false)
     }
   }
@@ -351,7 +309,7 @@ export function AthletesClient({
         </p>
       </div>
 
-      <Sheet open={editorOpen} onOpenChange={(open) => open ? setEditorOpen(true) : closeEditor()}>
+      <Sheet open={editorOpen} onOpenChange={(open) => { if (!saving) { if (open) setEditorOpen(true); else closeEditor() } }}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
           <SheetHeader>
             <SheetTitle>Ajouter un athlète</SheetTitle>
@@ -360,7 +318,7 @@ export function AthletesClient({
             </SheetDescription>
           </SheetHeader>
 
-          <div className="space-y-6 px-4">
+          <fieldset disabled={saving || pendingSave} className="min-w-0 space-y-6 px-4">
             <AthleteAffiliationFields value={form} refs={affiliationRefs} update={update} />
             <section className="space-y-4">
               <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Identité</h3>
@@ -457,46 +415,16 @@ export function AthletesClient({
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Fichiers</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Les fichiers seront renommés automatiquement avec l’ID COC généré.
+                  Les fichiers seront renommés automatiquement avec l’ID CNAC généré.
                 </p>
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2 rounded-lg border border-border p-4">
-                  <div className="flex items-center gap-2">
-                    <ImageIcon className="h-4 w-4 text-primary" />
-                    <Label htmlFor="avatar_file">Avatar</Label>
-                  </div>
-                  <ActorMediaInput
-                    id="avatar_file"
-                    type="file"
-                    accept=".png,.jpg,.jpeg,.webp"
-                    onChange={(event) => selectFile(event.target.files?.[0], "avatar")}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {avatarFile ? avatarFile.name : "PNG, JPG ou WebP — 4 Mo maximum"}
-                  </p>
-                </div>
-                <div className="space-y-2 rounded-lg border border-border p-4">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-primary" />
-                    <Label htmlFor="passport_file">Passeport</Label>
-                  </div>
-                  <ActorMediaInput
-                    id="passport_file"
-                    type="file"
-                    accept=".pdf,application/pdf"
-                    onChange={(event) => selectFile(event.target.files?.[0], "passeport")}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {passportFile ? passportFile.name : "PDF — 4 Mo maximum"}
-                  </p>
-                </div>
-              </div>
+              <ImageSelection label="Photo de profil" file={avatarFile} onChange={setAvatarFile} disabled={saving || pendingSave || !uploads.avatar} />
             </section>
-          </div>
+          </fieldset>
 
           <SheetFooter>
-            <Button variant="outline" onClick={closeEditor}>Annuler</Button>
+            {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+            <Button variant="outline" disabled={saving || pendingSave} onClick={closeEditor}>Annuler</Button>
             <Button onClick={save} disabled={saving}>{saving ? "Enregistrement..." : "Enregistrer"}</Button>
           </SheetFooter>
         </SheetContent>

@@ -1,11 +1,14 @@
 "use client"
 import { TeamSportingFields } from "@/components/dashboard/team-sporting-fields"
+import { trainingPatch, trainingFields } from "@/lib/cnac/team-training"
 import { parentKind, territorialEditorRow, type TerritorialKind } from "@/lib/cnac/territorial-model"
 import { buildFederationStructure } from "@/lib/federations/structure-model"
 
 import { apiFetch } from "@/lib/api/client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
+import { ImageSelection } from "@/components/dashboard/image-selection"
+import { confirmedSave } from "@/lib/api/confirmed-save"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { AlertCircle, ArrowLeft, CheckCircle2, Eye, MinusCircle, Pencil, Plus } from "lucide-react"
@@ -37,11 +40,14 @@ export default function ParametresClient({ data, federationId, logoAvailable = f
   const orderedHierarchy = [...hierarchie].sort((a, b) => Number(a.niveau) - Number(b.niveau))
   const categories = data.categoriesClub.filter((item) => !item.id_federation || item.id_federation === federationId)
   const [editor, setEditor] = useState<Editor>(() => initialEditor ? { ...initialEditor, resource: initialEditor.resource as Resource, row: territorialEditorRow(initialEditor.resource, initialEditor.row) } : null)
+  const ticket = useRef("")
+  const [pendingSave, setPendingSave] = useState(false)
+  const [logo, setLogo] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [feedback, setFeedback] = useState<Feedback>(null)
 
   const open = (resource: Resource, row: Record<string, string> = {}) => {
-    setFeedback(null)
+    setFeedback(null); setLogo(null); ticket.current = ""
     setEditor({ resource, id: row[idColumn(resource)] || undefined, row: { ...territorialEditorRow(resource, row), id_structure_parent_coc: row.directParentId || row.id_structure_parent_coc || "", id_federation: federationId, ...(resource === "hierarchie" ? {} : { statut: row.statut || "ACTIF" }) } })
   }
   const update = (key: string, value: string) => setEditor((current) => current ? ({ ...current, row: { ...current.row, [key]: value } }) : null)
@@ -52,13 +58,18 @@ export default function ParametresClient({ data, federationId, logoAvailable = f
     setSaving(true); setFeedback(null)
     try {
       const row = territorialEditorRow(editor.resource, editor.row)
+      if (editor.resource === "identification") {
+        await confirmedSave("/api/federations/identification", "PUT", { id: editor.id, row }, logo, "logo", ticket)
+      } else {
       const response = await apiFetch(`/api/federations/${editor.resource}`, { method: editor.id ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(editor.id ? { id: editor.id, row } : { row }) })
       const result = await response.json().catch(() => ({})) as { error?: string }
       if (!response.ok) return setFeedback({ type: "error", text: result.error || "L’enregistrement a échoué. Vérifiez les informations saisies." })
+      }
       setEditor(null); setFeedback({ type: "success", text: `${label(editor.resource)} : enregistrement effectué avec succès.` }); router.refresh()
     } catch {
       setFeedback({ type: "error", text: "Impossible de joindre le serveur. Vérifiez votre connexion puis réessayez." })
     } finally {
+      setPendingSave(Boolean(ticket.current))
       setSaving(false)
     }
   }
@@ -76,7 +87,7 @@ export default function ParametresClient({ data, federationId, logoAvailable = f
       <Card><CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex flex-wrap items-center gap-2"><h2 className="text-lg font-semibold">{federation.nom_federation}</h2>{federation.sigle_federation && <Badge variant="secondary">{federation.sigle_federation}</Badge>}</div><p className="text-sm text-muted-foreground">{federation.nom_sport} · ID fédération : {federation.id_federation}</p></div><Button asChild variant="outline"><Link href="/dashboard/federations"><ArrowLeft className="h-4 w-4" />Retour vers Fédérations</Link></Button></CardContent></Card>
       {feedback && !editor && <FeedbackAlert feedback={feedback} />}
       <Tabs defaultValue={initialEditor ? "elements" : "identification"} className="space-y-4"><TabsList className="grid h-auto w-full grid-cols-1 sm:grid-cols-3"><TabsTrigger value="identification">Identification et logo</TabsTrigger><TabsTrigger value="hierarchie">Hiérarchie territoriale</TabsTrigger><TabsTrigger value="elements">Éléments de la structure</TabsTrigger></TabsList>
-        <TabsContent value="identification" className="space-y-4"><Card><CardHeader><CardTitle>Identification et logo</CardTitle></CardHeader><CardContent className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center"><FederationLogoManager federationId={federation.id_federation} federationName={federation.nom_federation} initials={(federation.sigle_federation || federation.nom_federation).slice(0, 3).toUpperCase()} initialUrl={federation.logo_drive_url} canEdit={logoAvailable} /><div className="space-y-3"><p className="text-sm text-muted-foreground">Modifiez les statuts, dates et rattachements prévus dans la fiche Fédération.</p><Button onClick={() => open("identification", federation as unknown as Record<string, string>)}><Pencil className="h-4 w-4" />Modifier l’identification</Button></div></CardContent></Card><Card><CardContent className="pt-6"><EntityContactsSection entityId={federation.id_entite} canWrite /></CardContent></Card></TabsContent>
+        <TabsContent value="identification" className="space-y-4"><Card><CardHeader><CardTitle>Identification et logo</CardTitle></CardHeader><CardContent className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center"><FederationLogoManager key={federation.logo_drive_url} federationId={federation.id_federation} federationName={federation.nom_federation} initials={(federation.sigle_federation || federation.nom_federation).slice(0, 3).toUpperCase()} initialUrl={federation.logo_drive_url} canEdit={logoAvailable} /><div className="space-y-3"><p className="text-sm text-muted-foreground">Modifiez les statuts, dates et rattachements prévus dans la fiche Fédération.</p><Button onClick={() => open("identification", federation as unknown as Record<string, string>)}><Pencil className="h-4 w-4" />Modifier l’identification</Button></div></CardContent></Card><Card><CardContent className="pt-6"><EntityContactsSection entityId={federation.id_entite} canWrite /></CardContent></Card></TabsContent>
         <TabsContent value="hierarchie" className="space-y-4"><div className="rounded-lg border bg-muted/20 p-4"><p className="mb-2 text-sm font-medium text-muted-foreground">Aperçu immédiat</p><p className="break-words font-semibold">{["Fédération", ...orderedHierarchy.map((row) => row.nom_structure || typeName(row.id_type_structure))].join(" → ")}</p></div><ResourceCard title="Niveaux de structure" onAdd={() => open("hierarchie")} headers={["Niveau", "Structure", "Observations"]} rows={orderedHierarchy.map((row) => ({ key: row.id_hierarchie, cells: [row.niveau, row.nom_structure || typeName(row.id_type_structure), row.observations], edit: () => open("hierarchie", row as unknown as Record<string, string>), disable: () => disableHierarchy(row.id_hierarchie) }))} /></TabsContent>
         <TabsContent value="elements" className="space-y-6">
           {structureSections.map((section) => {
@@ -86,7 +97,7 @@ export default function ParametresClient({ data, federationId, logoAvailable = f
         </TabsContent>
       </Tabs>
     </main>
-    <Dialog open={Boolean(editor)} onOpenChange={(openState) => { if (!openState) { setEditor(null); setFeedback(null); if (initialEditor) router.replace(`/dashboard/federations/${encodeURIComponent(federationId)}/parametres`) } }}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl"><DialogHeader><DialogTitle>{editor?.id ? "Modifier" : "Ajouter"} {editor ? label(editor.resource).toLowerCase() : ""}</DialogTitle><DialogDescription>L’identifiant CNAC est généré automatiquement et reste immuable.</DialogDescription></DialogHeader>{editor && <EditorFields editor={editor} update={update} data={data} categories={categories} />}{feedback && editor && <FeedbackAlert feedback={feedback} />}<DialogFooter><Button variant="outline" onClick={() => { setEditor(null); setFeedback(null); if (initialEditor) router.replace(`/dashboard/federations/${encodeURIComponent(federationId)}/parametres`) }}>Annuler</Button><Button onClick={save} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</Button></DialogFooter></DialogContent></Dialog>
+    <Dialog open={Boolean(editor)} onOpenChange={(openState) => { if (!openState) { if (saving || ticket.current) return; setEditor(null); setFeedback(null); if (initialEditor) router.replace(`/dashboard/federations/${encodeURIComponent(federationId)}/parametres`) } }}><DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl"><DialogHeader><DialogTitle>{editor?.id ? "Modifier" : "Ajouter"} {editor ? label(editor.resource).toLowerCase() : ""}</DialogTitle><DialogDescription>L’identifiant CNAC est généré automatiquement et reste immuable.</DialogDescription></DialogHeader>{editor && <fieldset disabled={saving || (editor.resource === "identification" && pendingSave)} className="min-w-0 space-y-4"><EditorFields editor={editor} update={update} data={data} categories={categories} />{editor.resource === "identification" && <ImageSelection label="Logo" file={logo} onChange={setLogo} existingUrl={federation.logo_drive_url} disabled={saving || pendingSave || !logoAvailable} />}</fieldset>}{feedback && editor && <FeedbackAlert feedback={feedback} />}<DialogFooter><Button variant="outline" disabled={saving || pendingSave} onClick={() => { setEditor(null); setFeedback(null); if (initialEditor) router.replace(`/dashboard/federations/${encodeURIComponent(federationId)}/parametres`) }}>Annuler</Button><Button onClick={save} disabled={saving}>{saving ? "Enregistrement…" : "Enregistrer"}</Button></DialogFooter></DialogContent></Dialog>
   </div>
 }
 
@@ -130,6 +141,12 @@ function validateEditor(editor: NonNullable<Editor>, data: FederationData) {
   if (editor.resource === "cercles" && !row.nom_cercle?.trim()) return "Renseignez le nom du cercle et son parent territorial."
   if (editor.resource === "clubs" && !row.nom_club?.trim()) return "Renseignez le nom du club."
   if (editor.resource === "equipes" && (!row.nom_equipe?.trim() || !row.id_club_coc?.trim())) return "Renseignez le nom de l’équipe et son club parent."
+  if (editor.resource === "equipes") {
+    const current = data.equipes.find(team => team.id_equipe_coc === editor.id)
+    try {
+      trainingPatch(Object.fromEntries(trainingFields.filter(field => field in row).map(field => [field, row[field]])), current)
+    } catch (error) { return error instanceof Error ? error.message : "Planning d’entraînement invalide." }
+  }
   const email = editor.resource === "ligues" ? row.email_ligue : editor.resource === "ententes" ? row.email_entente : ""
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "L’adresse e-mail saisie n’est pas valide."
   return ""

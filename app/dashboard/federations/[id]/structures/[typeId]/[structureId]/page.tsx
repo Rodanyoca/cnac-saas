@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { loadFederationData } from "@/lib/federations/data"
 import { buildFederationStructure } from "@/lib/federations/structure-model"
+import { TeamTrainingSummary } from "@/components/dashboard/team-training-summary"
 
 export const dynamic = "force-dynamic"
 
@@ -62,6 +63,7 @@ export default async function StructureDetailPage({ params }: { params: Promise<
       </Card>
 
       {category && <Card className="min-w-0 border-border/70"><CardHeader><CardTitle className="text-base">Catégorie équipe</CardTitle></CardHeader><CardContent><p className="font-medium">{category}</p></CardContent></Card>}
+      {item.resource === "equipes" && <TeamTrainingSummary team={item.record} />}
       {item.parentId && <Card className="min-w-0 border-border/70">
         <CardHeader><CardTitle className="text-base">Parent direct</CardTitle></CardHeader>
         <CardContent>{parent ? <Link className="font-medium text-primary hover:underline" href={structureHref(id, parent.section.typeId, parent.entity.id)}>{parent.entity.name || parent.entity.id}</Link> : <p className="text-sm text-destructive">Parent introuvable : {item.parentId}</p>}</CardContent>

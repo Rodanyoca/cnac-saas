@@ -1,4 +1,5 @@
-import { hasValidFederationLogoSignature, validateFederationLogo, type FederationLogoResult, type FederationLogoUploadInput } from "./logo.ts"
+import { validateImageBuffer } from "../cnac/image-validation.ts"
+import { validateFederationLogo, type FederationLogoResult, type FederationLogoUploadInput } from "./logo.ts"
 
 type HandlerDependencies = {
   canWrite: () => Promise<boolean>
@@ -14,7 +15,7 @@ export async function handleFederationLogoUpload(request: Request, federationId:
     const validation = validateFederationLogo(file)
     if (!validation.ok) return Response.json({ error: validation.error }, { status: 400 })
     const buffer = Buffer.from(await file.arrayBuffer())
-    if (!hasValidFederationLogoSignature(buffer, file.type)) return Response.json({ error: "Le contenu du fichier ne correspond pas à une image autorisée." }, { status: 400 })
+    try { await validateImageBuffer(buffer, file.type) } catch { return Response.json({ error: "Le contenu du fichier ne correspond pas à une image autorisée." }, { status: 400 }) }
     const result = await dependencies.replace({
       federationId,
       fileName: file.name,

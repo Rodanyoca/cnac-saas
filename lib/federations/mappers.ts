@@ -1,4 +1,5 @@
 import type { CategorieClub, Cercle, Club, Entente, Entite, Equipe, Federation, Ligue, Province, RelationHierarchique, Sport, TypeStructure, Ville, Zone } from "./types"
+import { cnacMediaUrl } from "../cnac/media-url.ts"
 
 const metadata = (r: Record<string,unknown>) => ({ directParentId: String(r.id_structure_parent_cnac ?? r.id_structure_parent_coc ?? ""), parentLabel: String(r.parent_label ?? ""), relationIssue: String(r.relation_issue ?? "") })
 
@@ -24,7 +25,7 @@ export const mapLigueRow = (r: Record<string, unknown>): Ligue => ({
 export const mapEntenteRow = (r: Record<string, unknown>): Entente => ({ ...metadata(r), ...map<Entente>(r, ["id_entente_coc", "id_entente_federation", "id_federation", "nom_entente", "id_ville", "statut"]), pseudo_entente:value(r,"sigle_entente"), id_ligue_coc: "id_ligue_coc" in r ? value(r,"id_ligue_coc") : value(r,"id_structure_parent_coc"), nom_ligue:value(r,"nom_ligue"), nom_ville:value(r,"nom_ville"), telephone_entente:value(r,"telephone"), email_entente:value(r,"email") })
 export const mapClubRow = (r: Record<string, unknown>): Club => ({ ...metadata(r), ...map<Club>(r, ["id_club_coc", "id_club_federation", "nom_club", "id_federation", "id_province", "id_ville", "statut"]), id_categorie:value(r,"id_categorie_club"), nom_categorie:"", id_entente_coc: "id_entente_coc" in r ? value(r,"id_entente_coc") : value(r,"id_structure_parent_coc"), id_cercle_coc: "id_cercle_coc" in r ? value(r,"id_cercle_coc") : value(r,"id_structure_parent_coc"), nom_entente:value(r,"nom_entente"), pseudo_entente:value(r,"pseudo_entente"), id_ligue_coc: "id_ligue_coc" in r ? value(r,"id_ligue_coc") : value(r,"id_structure_parent_coc"), nom_ligue:value(r,"nom_ligue"), pseudo_ligue:value(r,"pseudo_ligue"), nom_ville:"", sigle_club:value(r,"sigle_club"), telephone_club:value(r,"telephone"), email_club:value(r,"email") })
 export const mapCercleRow = (r: Record<string, unknown>): Cercle => ({ ...metadata(r), ...map<Cercle>(r, ["id_cercle_coc", "id_cercle_federation", "id_federation", "id_structure_parent_coc", "nom_cercle", "id_ville", "statut"]), sigle_cercle: value(r, "sigle_cercle"), telephone_cercle:value(r,"telephone"), email_cercle:value(r,"email") })
-export const mapEquipeRow = (r: Record<string, unknown>): Equipe => ({...metadata(r),...map<Equipe>(r, ["id_equipe_coc", "id_equipe_federation", "id_federation", "id_club_coc", "nom_equipe", "statut", "observations", "id_sport", "id_discipline", "id_categorie_age", "id_sexe"])})
+export const mapEquipeRow = (r: Record<string, unknown>): Equipe => ({...metadata(r),...map<Equipe>(r, ["id_equipe_coc", "id_equipe_federation", "id_federation", "id_club_coc", "nom_equipe", "statut", "observations", "id_sport", "id_discipline", "id_categorie_age", "id_sexe", "lieu_entrainement", "adresse_entrainement", "fuseau_horaire_entrainement", "planning_entrainement_json"])})
 export const mapHierarchieRow = (r: Record<string, unknown>): RelationHierarchique => ({
   ...map<RelationHierarchique>(r, ["id_hierarchie", "id_federation", "id_type_structure", "observations"]), nom_structure:"", niveau:value(r,"niveau_hierarchique"),
 })
@@ -43,7 +44,7 @@ export function mapFederationRow(r: Record<string, unknown>): Federation {
     sigle_federation: "",
     nom_sport: "",
     logo_drive_id: logoDriveId,
-    logo_drive_url: value(r, "logo_drive_url") || (logoDriveId ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(logoDriveId)}&sz=w400` : ""),
+    logo_drive_url: cnacMediaUrl("logo", value(r, "id_federation"), logoDriveId),
     statut: value(r, "statut"),
     statut_reconnaissance_ministere: value(r, "statut_reconnaissance_ministere"),
     date_reconnaissance_nationale: value(r, "date_reconnaissance_nationale"),

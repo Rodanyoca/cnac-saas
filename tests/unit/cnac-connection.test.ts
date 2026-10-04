@@ -37,11 +37,11 @@ test("athlete media columns are preserved during reading and identity updates",(
  assert.deepEqual(patch,{nom_complet:"Changed"})
 })
 
-test("Federation logos from copied referential columns are not exposed",()=>{
+test("Federation logo columns are supported without creating headers",()=>{
  const headers=[...CNAC_HEADERS.FEDERATIONS,"logo_drive_id","logo_drive_url"]
  const values=[headers,headers.map(key=>key==="id_federation"?"FED001":key.startsWith("logo_drive_")?"legacy-logo":"")]
  const row=parseTable("FEDERATIONS",values).rows[0]
- assert.equal("logo_drive_id" in row,false);assert.equal("logo_drive_url" in row,false)
+ assert.equal(row.logo_drive_id,"legacy-logo");assert.equal(row.logo_drive_url,"legacy-logo")
 })
 test("Empty sheets and unchecked contact-only rows do not create records",()=>{
   assert.deepEqual(parseTable("ATHLETES",[CNAC_HEADERS.ATHLETES as unknown as string[]]).rows,[])
@@ -133,7 +133,7 @@ test("Duplicated territorial parents remain ambiguous rather than choosing a rec
 
 test("Missing optional OAuth disables uploads without altering Sheets configuration",()=>{
  assert.deepEqual(cnacUploadAvailability({}),{avatar:false,passeport:false,logo:false})
- assert.deepEqual(cnacUploadAvailability({GOOGLE_OAUTH_CLIENT_ID:"client",GOOGLE_OAUTH_CLIENT_SECRET:"secret",GOOGLE_DRIVE_REFRESH_TOKEN:"token",GOOGLE_DRIVE_ACTEURS_AVATARS_FOLDER_ID:"folder",GOOGLE_DRIVE_FEDERATION_LOGOS_FOLDER_ID:"logos"}),{avatar:false,passeport:false,logo:false})
+ assert.deepEqual(cnacUploadAvailability({GOOGLE_OAUTH_CLIENT_ID:"client",GOOGLE_OAUTH_CLIENT_SECRET:"secret",GOOGLE_DRIVE_REFRESH_TOKEN:"token",GOOGLE_DRIVE_ACTEURS_AVATARS_FOLDER_ID:"folder",GOOGLE_DRIVE_FEDERATION_LOGOS_FOLDER_ID:"logos"}),{avatar:true,passeport:false,logo:true})
 })
 
 test("Native contact booleans retain the canonical value used by principal-contact validation",()=>{

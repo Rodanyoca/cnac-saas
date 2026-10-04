@@ -53,10 +53,18 @@ export async function getDriveFileSize(fileId: string): Promise<string> {
   }
 }
 
-export async function uploadPrivateFileToDrive(params: { fileName: string; mimeType: string; buffer: Buffer; folderId: string }): Promise<DriveUploadResult> {
+export async function reservePrivateDriveFileId(): Promise<string> {
+  const drive = createDrive({ version: "v3", auth: getDriveAuth() })
+  const response = await runGoogleRequest(() => drive.files.generateIds({ count: 1, space: "drive", type: "files" }))
+  const id = response.data.ids?.[0]
+  if (!id) throw new Error("Réservation du fichier Drive impossible.")
+  return id
+}
+
+export async function uploadPrivateFileToDrive(params: { fileName: string; mimeType: string; buffer: Buffer; folderId: string; fileId?: string }): Promise<DriveUploadResult> {
   try {
     const drive = createDrive({ version: "v3", auth: getDriveAuth() })
-    const response = await runGoogleRequest(() => drive.files.create({ requestBody: { name: params.fileName, parents: [params.folderId] }, media: { mimeType: params.mimeType, body: Readable.from(params.buffer) }, fields: "id" }), { idempotent: false })
+    const response = await runGoogleRequest(() => drive.files.create({ requestBody: { id: params.fileId, name: params.fileName, parents: [params.folderId] }, media: { mimeType: params.mimeType, body: Readable.from(params.buffer) }, fields: "id" }), { idempotent: false })
     const fileId = response.data.id
     if (!fileId) throw new Error("Upload Drive échoué : aucun ID retourné")
     return { fileId, url: `https://drive.google.com/file/d/${fileId}/view` }

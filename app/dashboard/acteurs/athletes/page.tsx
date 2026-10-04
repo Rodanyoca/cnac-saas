@@ -1,3 +1,4 @@
+import { cnacMediaUrl } from "@/lib/cnac/media-url"
 import { activeAffiliationLabel } from "@/lib/cnac/affiliation-model"
 import { loadAffiliationReferences } from "@/lib/cnac/affiliation-data"
 import { CnacSourceError } from "@/components/dashboard/cnac-source-error"
@@ -38,7 +39,7 @@ async function AthletesPage() {
       federation: federationById.get(row.id_federation) || (row.id_federation ? `Référence inconnue (${row.id_federation})` : ""),
       federationId: row.id_federation || "",
       statut: row.statut || "",
-      avatar: row.avatar_drive_url || null,
+      avatar: cnacMediaUrl("avatar", row.id_athlete_cnac || row.id_athlete_coc, row.avatar_drive_id || "") || null,
     }))
 
   const federations: FederationOption[] = federationRows.map(({ id, sigle, nom }) => ({

@@ -20,11 +20,11 @@ const refs: AffiliationReferences = {
 }
 const athlete={id_athlete_cnac:"A1",nom_complet:"Alice",id_federation:"F1",id_sexe:"01",id_club_cnac:"C1",id_equipe_cnac:"T1"}
 test("current EQUIPES headers load without removed sporting columns and reject writes to them", () => {
- const headers = ["id_equipe_cnac", "id_equipe_federation", "id_federation", "id_club_cnac", "id_sport", "id_discipline", "id_categorie_age", "id_sexe", "nom_equipe", "statut", "observations"]
+ const headers = [...CNAC_HEADERS.EQUIPES]
  const row = { id_equipe_cnac: "T1", id_federation: "F1", id_club_cnac: "C1", id_categorie_age: "AGE1", nom_equipe: "Seniors" }
  const table = parseTable("EQUIPES", [headers, headers.map(key => row[key as keyof typeof row] || "")])
  assert.equal(table.rows[0].nom_equipe, "Seniors")
- assert.equal(appendValues({ ...table, rows: [] }, "EQUIPES", row).length, 11)
+ assert.equal(appendValues({ ...table, rows: [] }, "EQUIPES", row).length, 15)
  assert.throws(() => parseTable("EQUIPES", [headers.filter(key => key !== "id_club_cnac")]), /id_club_cnac/)
  const legacy = parseTable("EQUIPES", [[...headers, "id_type_structure_sportive", "id_structure_sportive_cnac", "id_division"], [...headers.map(key => row[key as keyof typeof row] || ""), "OLD", "OLD", "D4"]])
  for (const column of ["id_type_structure_sportive", "id_structure_sportive_cnac", "id_division"]) {
@@ -70,7 +70,7 @@ test("athlete affiliation filters teams, changes club/federation and validates o
  assert.doesNotThrow(()=>actorPatch("athletes",{nom_complet:"Bob",id_federation:"F2",id_sexe:"01",id_club_cnac:"C3",id_equipe_cnac:""},undefined,refs,[]))
  assert.equal(sportUsesTeams({...refs,SPORTS:[]},"F1"),undefined)
 })
-test("physical mappings reach EQUIPES N and ATHLETES W/X, preserving other cells",()=>{
+test("physical mappings reach EQUIPES L:O and ATHLETES W/X, preserving other cells",()=>{
  const headers=[...CNAC_HEADERS.ATHLETES]
  const table=parseTable("ATHLETES",[headers,headers.map(key=>athlete[key as keyof typeof athlete]||"")])
  const cells=updateCells(table,"ATHLETES","id_athlete_cnac","A1",[{column:"id_club_cnac",value:"C2"},{column:"id_equipe_cnac",value:""}])
@@ -80,12 +80,19 @@ test("physical mappings reach EQUIPES N and ATHLETES W/X, preserving other cells
  const team={...refs.EQUIPES[0],nom_equipe:"Seniors"}
  const teamTable=parseTable("EQUIPES",[[...CNAC_HEADERS.EQUIPES]])
  const teamValues=appendValues(teamTable,"EQUIPES",team)
- assert.equal(teamValues.length,11);assert.equal(teamValues[6],"AGE1")
+ assert.equal(teamValues.length,15);assert.equal(teamValues[6],"AGE1")
+ const existing = parseTable("EQUIPES", [[...CNAC_HEADERS.EQUIPES], teamValues])
+ const trainingCells = updateCells(existing, "EQUIPES", "id_equipe_cnac", "T1", [
+  { column: "lieu_entrainement", value: "Salle" }, { column: "adresse_entrainement", value: "Adresse" },
+  { column: "fuseau_horaire_entrainement", value: "Africa/Kinshasa" }, { column: "planning_entrainement_json", value: "[]" },
+ ])
+ assert.deepEqual(trainingCells.map(cell => cell.columnIndex), [11,12,13,14])
+ assert.deepEqual(teamValues.slice(11), ["", "", "", ""])
 })
 
 
 test("team Sheets writers reject removed fields even with legacy physical headers", () => {
- const headers=[...CNAC_HEADERS.EQUIPES.slice(0,11),"id_type_structure_sportive","id_structure_sportive_cnac","id_division"]
+ const headers=[...CNAC_HEADERS.EQUIPES,"id_type_structure_sportive","id_structure_sportive_cnac","id_division"]
  const team={id_equipe_cnac:"OLD",id_federation:"F1",nom_equipe:"Ancienne",id_club_cnac:"C1"}
  const table=parseTable("EQUIPES",[headers,headers.map(column=>team[column as keyof typeof team]||"")])
  assert.throws(()=>updateCells(table,"EQUIPES","id_equipe_cnac","OLD",[{column:"id_type_structure_sportive",value:"REMOVED"}]),/Colonne absente/)

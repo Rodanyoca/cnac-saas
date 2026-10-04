@@ -1,8 +1,9 @@
 import "server-only"
-import { sheets, auth as googleAuth } from "googleapis/build/src/apis/sheets"
+import { sheets, auth as googleAuth, type sheets_v4 } from "googleapis/build/src/apis/sheets"
 import { runGoogleRequest } from "../google/request"
 import { cnacCredentials, cnacWorkbook } from "./config"
 import { cnacError } from "./errors"
+import { mediaCellReferences } from "./media-url"
 import { type CnacSheet } from "./schema"
 import { appendValues, assertHeaders, CnacDataError, isDateColumn, parseTable, updateCells, type SheetTable } from "./model"
 
@@ -15,7 +16,7 @@ function client(write=false) {
   const {email,key} = cnacCredentials()
   return sheets({version:"v4",auth:new googleAuth.JWT({email,key,scopes:[`https://www.googleapis.com/auth/spreadsheets${write?"":".readonly"}`]})})
 }
-const range = (name:string) => `'${name.replaceAll("'","''")}'!${name === "ATHLETES" ? "A:X" : "A:AZ"}`
+const range = (name:string) => `'${name.replaceAll("'","''")}'!${name === "ATHLETES" ? "A:X" : name === "EQUIPES" ? "A:O" : "A:AZ"}`
 export function clearSheetCache() { store.generation++;store.cache.clear();store.pending.clear() }
 
 async function tables(params: Params): Promise<Record<string,SheetTable>> {
@@ -67,6 +68,49 @@ export async function getSheetRows(params: Omit<Params,"sheetNames"> & {sheetNam
 export async function getSheetHeaders(params: Omit<Params,"sheetNames"> & {sheetName:string}) { return (await tables({...params,sheetNames:[params.sheetName]}))[params.sheetName].headers }
 export const getSheetsTables = tables
 
+// Une création Fédération écrit ENTITES et FEDERATIONS dans un seul batch atomique.
+// Le même adaptateur réunit aussi les champs métier et médias d'une modification.
+export async function writeCnacSaveRows(spreadsheetId: string, rows: import("./confirmed-save").SaveRow[]) {
+  const names = [...new Set(rows.map(row => row.sheet))]
+  const fresh = await tables({ spreadsheetId, sheetNames: names, bypassCache: true })
+  const api = client(true)
+  const metadata = await runGoogleRequest(() => api.spreadsheets.get({ spreadsheetId, fields: "sheets.properties(sheetId,title)" }, { timeout: timeout() }), { timeoutMs: timeout() })
+  const sheetIds = new Map(metadata.data.sheets?.map(sheet => [sheet.properties?.title, sheet.properties?.sheetId]))
+  const valueCell = (value: string | number | boolean) => ({ userEnteredValue: typeof value === "number" ? { numberValue: value } : typeof value === "boolean" ? { boolValue: value } : { stringValue: value } })
+  const requests = rows.flatMap<sheets_v4.Schema$Request>(row => {
+    const sheetId = sheetIds.get(row.sheet)
+    if (sheetId === undefined || sheetId === null) throw new CnacDataError("MAPPING_SHEET", "Feuille CNAC introuvable.", 502)
+    const table = fresh[row.sheet]
+    if (row.mode === "create") return [{ appendCells: { sheetId, rows: [{ values: appendValues(table, row.sheet, row.values).map(valueCell) }], fields: "userEnteredValue" } }]
+    const key = row.sheet === "ATHLETES" ? "id_athlete_cnac" : "id_federation"
+    const current = table.rows.find(item => item[key] === row.id)
+    if (!current || !Object.entries(row.before || {}).every(([column, value]) => (current[column] || "") === value)) throw new CnacDataError("SAVE_CONFLICT", "La fiche a changé avant l’écriture. Rechargez-la.", 409)
+    return updateCells(table, row.sheet, row.sheet === "ATHLETES" ? "id_athlete_cnac" : "id_federation", row.id, Object.entries(row.values).filter(([column]) => column !== (row.sheet === "ATHLETES" ? "id_athlete_cnac" : "id_federation")).map(([column, value]) => ({ column, value }))).map(cell => ({ updateCells: { start: { sheetId, rowIndex: cell.rowNumber - 1, columnIndex: cell.columnIndex }, rows: [{ values: [valueCell(cell.value)] }], fields: "userEnteredValue" } }))
+  })
+  try { await runGoogleRequest(() => api.spreadsheets.batchUpdate({ spreadsheetId, requestBody: { requests } }, { timeout: timeout() }), { idempotent: false, timeoutMs: timeout() }) }
+  catch (error) { throw cnacError(error) } finally { clearSheetCache() }
+}
+
+export async function cnacMediaIsReferenced(fileId: string) {
+  // Lire les colonnes brutes également chez les autres acteurs : un fichier partagé
+  // doit rester protégé même si leur upload n'est pas activé.
+  const books = [
+    { id: process.env.GOOGLE_SHEETS_REFERENTIEL_SPREADSHEET_ID || "", names: ["FEDERATIONS"] },
+    { id: process.env.GOOGLE_SHEETS_ACTEURS_SPREADSHEET_ID || "", names: ["ATHLETES", "COACHS", "ARBITRES", "OFFICIELS", "MEDECINS", "AUTRES"] },
+  ]
+  const api = client()
+  for (const book of books) {
+    book.names.forEach(name => cnacWorkbook(name, book.id))
+    const response = await runGoogleRequest(() => api.spreadsheets.values.batchGet({ spreadsheetId: book.id, ranges: book.names.map(range) }, { timeout: timeout() }), { timeoutMs: timeout() })
+    for (const values of response.data.valueRanges || []) {
+      const matrix = values.values || [], headers = matrix[0] || []
+      const positions = headers.flatMap((header, index) => /^(avatar|logo|passeport)_drive_(id|url)$/.test(String(header).trim()) ? [index] : [])
+      if (matrix.slice(1).some(row => positions.some(index => mediaCellReferences(row[index], fileId)))) return true
+    }
+  }
+  return false
+}
+
 function columnLetter(index:number) { let result="";for(let n=index+1;n;n=Math.floor((n-1)/26))result=String.fromCharCode(65+(n-1)%26)+result;return result }
 export async function updateSheetCells(params:{sheetName:string;spreadsheetId:string;idColumn:string;idValue:string;updates:{column:string;value:string}[]}) {
   const sheet=cnacWorkbook(params.sheetName,params.spreadsheetId)
@@ -81,7 +125,7 @@ export async function appendSheetRow(params:{sheetName:string;spreadsheetId:stri
   const sheet=cnacWorkbook(params.sheetName,params.spreadsheetId)
   const table=(await tables({spreadsheetId:params.spreadsheetId,sheetNames:[sheet],bypassCache:true}))[sheet]
   const values=appendValues(table,sheet,params.row)
-  const appendRange=sheet==="ZONES"?"'ZONES'!A:G":sheet==="ENTENTES"?"'ENTENTES'!A:M":sheet==="EQUIPES"?"'EQUIPES'!A:K":range(sheet)
+  const appendRange=sheet==="ZONES"?"'ZONES'!A:G":sheet==="ENTENTES"?"'ENTENTES'!A:M":sheet==="EQUIPES"?"'EQUIPES'!A:O":range(sheet)
   const api=client(true)
   try{await runGoogleRequest(()=>api.spreadsheets.values.append({spreadsheetId:params.spreadsheetId,range:appendRange,valueInputOption:"RAW",insertDataOption:"INSERT_ROWS",requestBody:{values:[values]}},{timeout:timeout()}),{idempotent:false,timeoutMs:timeout()})}catch(error){throw cnacError(error)}finally{clearSheetCache()}
 }

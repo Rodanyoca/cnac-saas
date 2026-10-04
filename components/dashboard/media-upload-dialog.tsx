@@ -1,7 +1,7 @@
 "use client"
 
 import { useCnacActorReferences } from "@/components/dashboard/cnac-actor-references"
-import { apiFetch } from "@/lib/api/client"
+import { confirmedSave } from "@/lib/api/confirmed-save"
 
 import {
   Dialog,
@@ -69,8 +69,10 @@ export function MediaUploadDialog({
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const ticket = useRef("")
 
   const reset = useCallback(() => {
+    if (ticket.current) return
     setFile(null)
     setPreview(null)
     setError(null)
@@ -108,22 +110,7 @@ export function MediaUploadDialog({
     setError(null)
 
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("mediaType", mediaType)
-      if (actorType) formData.append("actorType", actorType)
-      if (actorId) formData.append("actorId", actorId)
-
-      const res = await apiFetch("/api/upload-media", { method: "POST", body: formData })
-      const data = await res.json().catch(() => null)
-
-      if (!res.ok) {
-        setError(data?.error || (res.status === 413 ? `Le fichier dépasse ${MAX_SIZE_MB} Mo.` : `Erreur d’envoi (${res.status}).`))
-        return
-      }
-
-      if (!data) throw new Error("Réponse d’envoi invalide")
-
+      const data = await confirmedSave("/api/upload-media", "POST", { actorType, actorId, mediaType }, file, "file", ticket)
       setSuccess(true)
       onSuccess?.({ fileId: data.fileId, url: data.url })
 
@@ -131,18 +118,19 @@ export function MediaUploadDialog({
         setOpen(false)
         reset()
       }, 1200)
-    } catch {
-      setError("Erreur réseau. Veuillez réessayer.")
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Erreur réseau. Veuillez réessayer.")
     } finally {
       setUploading(false)
     }
   }, [file, mediaType, actorType, actorId, onSuccess, reset])
 
-  if (availability.scoped && !availability.uploads[mediaType]) return <Button variant="outline" disabled title="Uploads Drive CNAC non configurés">Upload Drive non configuré</Button>
+  if (availability.scoped && (actorType !== "athletes" || mediaType !== "avatar" || !availability.uploads.avatar)) return <Button variant="outline" disabled title="Uploads Drive CNAC non configurés">Upload Drive non configuré</Button>
   return (
     <Dialog
       open={open}
       onOpenChange={(v) => {
+        if (uploading || ticket.current) return
         setOpen(v)
         if (!v) reset()
       }}

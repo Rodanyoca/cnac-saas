@@ -19,9 +19,9 @@ const root = fileURLToPath(new URL("../../", import.meta.url))
 const require = createRequire(import.meta.url)
 const request = (body: unknown) => new Request("http://fixture.invalid/api", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
 
-test("athlete affiliation references load the current eleven-column EQUIPES sheet", async () => {
+test("athlete affiliation references load the current fifteen-column EQUIPES sheet", async () => {
   const f = fixture()
-  const headers = ["id_equipe_cnac", "id_equipe_federation", "id_federation", "id_club_cnac", "id_sport", "id_discipline", "id_categorie_age", "id_sexe", "nom_equipe", "statut", "observations"]
+  const headers = [...CNAC_HEADERS.EQUIPES]
   const team: SheetRecord = { id_equipe_cnac: "T1", id_federation: "FED1", id_club_cnac: "C1", id_categorie_age: "AGE1", nom_equipe: "Seniors" }
   f.matrices.set("EQUIPES", [headers, headers.map(key => team[key] || "")])
   const { loadAffiliationReferences } = f.load(resolve(root, "lib/cnac/affiliation-data.ts")) as { loadAffiliationReferences: () => Promise<Record<string, SheetRecord[]>> }
@@ -49,7 +49,7 @@ test("team and athlete save/reload through real handlers and Sheets transport; f
   assert.equal("id_structure_sportive_cnac" in team,false)
   const federationData=await f.loadFederationData({connected:true})
   assert.equal(federationData.equipes[0].observations,"PRÉSERVER")
-  assert.equal(f.appends[0].values[0].length,11);assert.equal(f.appends[0].values[0][6],"AGE1")
+  assert.equal(f.appends[0].values[0].length,15);assert.equal(f.appends[0].values[0][6],"AGE1")
   const actor=f.load(resolve(root,"lib/cnac/actor-handler.ts")) as {actorWrite:(kind:string,request:Request,method:string)=>Promise<Response>}
   // Reproduire les vrais emplacements S:V des médias, W:X de l'affiliation.
   const athleteHeaders=[...CNAC_HEADERS.ATHLETES]
@@ -120,7 +120,7 @@ function fixture(extraMocks: Record<string, unknown> = {}, env: Record<string, s
   matrices.get("ENTENTES")![1].push("D2")
   const reads: string[][] = [], appends: { range: string; values: unknown[][] }[] = [], updates: { range: string; values: unknown[][] }[] = []
   const revalidations: [string, string?][] = []
-  let authorized = true, accessChecks = 0
+  let authorized = true, accessChecks = 0, failNextWrite = false
   const transport = {
     spreadsheets: { values: {
       async batchGet({ ranges }: { ranges: string[] }) {
@@ -134,11 +134,13 @@ function fixture(extraMocks: Record<string, unknown> = {}, env: Record<string, s
         }) } }
       },
       async append({ range, requestBody }: { range: string; requestBody: { values: unknown[][] } }) {
+        if (failNextWrite) { failNextWrite = false; throw new Error("Simulated Sheets failure") }
         appends.push({ range, values: structuredClone(requestBody.values) })
         matrices.get(range.match(/^'([^']+)'/)![1] as CnacSheet)!.push(...structuredClone(requestBody.values))
         return { data: {} }
       },
       async batchUpdate({ requestBody }: { requestBody: { data: typeof updates } }) {
+        if (failNextWrite) { failNextWrite = false; throw new Error("Simulated Sheets failure") }
         updates.push(...structuredClone(requestBody.data))
         for (const cell of requestBody.data) {
           const match = cell.range.match(/^'([^']+)'!([A-Z]+)(\d+)$/)!
@@ -193,8 +195,87 @@ function fixture(extraMocks: Record<string, unknown> = {}, env: Record<string, s
   }
   const { territorialWrite } = load(resolve(root, "lib/cnac/territorial-handler.ts")) as { territorialWrite: (kind: string, request: Request, method: string) => Promise<Response> }
   const { loadFederationData } = load(resolve(root, "lib/federations/data.ts")) as { loadFederationData: (options: { connected: boolean }) => Promise<FederationData> }
-  return { matrices, reads, appends, updates, revalidations, load, loadFederationData, territorialWrite, deny: () => { authorized = false }, accessChecks: () => accessChecks }
+  return { matrices, reads, appends, updates, revalidations, load, loadFederationData, territorialWrite, deny: () => { authorized = false }, accessChecks: () => accessChecks, failWrite: () => { failNextWrite = true } }
 }
+
+test("team training saves fifteen columns, reloads, preserves partial updates and clears explicitly", async () => {
+  const f = fixture()
+  const club = { id_club_cnac: "C1", id_federation: "FED1", nom_club: "Club test" } as SheetRecord
+  f.matrices.get("CLUBS")!.push(CNAC_HEADERS.CLUBS.map(key => club[key] || ""))
+  const schedule = [{ jour: 3, heure_debut: "16:00", heure_fin: "18:00" }, { jour: 1, heure_debut: "16:00", heure_fin: "18:00" }, { jour: 3, heure_debut: "09:00", heure_fin: "11:00" }]
+  const training = { lieu_entrainement: "Salle test", adresse_entrainement: "Adresse précise", fuseau_horaire_entrainement: "Africa/Lubumbashi", planning_entrainement_json: JSON.stringify(schedule) }
+  const basic = { id_federation: "FED1", id_club_cnac: "C1", nom_equipe: "Equipe test", id_categorie_age: "AGE1" }
+  const created = await f.territorialWrite("equipes", request({ row: { ...basic, ...training } }), "POST")
+  assert.equal(created.status, 200)
+  const id = (await created.json()).row.id_equipe_cnac
+  assert.equal(f.appends[0].range, "'EQUIPES'!A:O")
+  assert.equal(f.appends[0].values[0].length, 15)
+  const canonical = JSON.stringify([schedule[1], schedule[2], schedule[0]])
+  assert.deepEqual(f.appends[0].values[0].slice(11), [training.lieu_entrainement, training.adresse_entrainement, training.fuseau_horaire_entrainement, canonical])
+  const reloaded = await f.loadFederationData({ connected: true })
+  assert.equal(reloaded.equipes[0].planning_entrainement_json, canonical)
+  assert.equal(reloaded.equipes[0].adresse_entrainement, training.adresse_entrainement)
+  const noPlanning = await f.territorialWrite("equipes", request({ row: { ...basic, nom_equipe: "Ancienne équipe vide" } }), "POST")
+  assert.equal(noPlanning.status, 200)
+  assert.deepEqual(f.appends[1].values[0].slice(11), ["", "", "", ""])
+  const before = structuredClone(f.matrices.get("EQUIPES")![1].slice(11))
+  assert.equal((await f.territorialWrite("equipes", request({ id, row: { observations: "Changer seulement la note" } }), "PUT")).status, 200)
+  assert.deepEqual(f.matrices.get("EQUIPES")![1].slice(11), before)
+  const reduced = JSON.stringify([{ jour: 5, heure_debut: "10:00", heure_fin: "12:00" }])
+  assert.equal((await f.territorialWrite("equipes", request({ id, row: { planning_entrainement_json: reduced } }), "PUT")).status, 200)
+  assert.equal(f.updates.at(-1)!.range, "'EQUIPES'!O2")
+  assert.equal((await f.loadFederationData({ connected: true })).equipes[0].planning_entrainement_json, reduced)
+  assert.equal((await f.territorialWrite("equipes", request({ id, row: { lieu_entrainement: "", adresse_entrainement: "", fuseau_horaire_entrainement: "", planning_entrainement_json: "[]" } }), "PUT")).status, 200)
+  assert.deepEqual(f.matrices.get("EQUIPES")![1].slice(11), ["", "", "", "[]"])
+  assert.ok(f.reads.flat().some(range => range === "'EQUIPES'!A:O"))
+  assert.ok(f.revalidations.some(([path, type]) => path === "/dashboard/acteurs/athletes" && type === "layout"))
+})
+
+test("invalid team schedules and failed or unauthorized writes never succeed; historical anomalies remain", async () => {
+  const f = fixture()
+  const row: SheetRecord = { id_equipe_cnac: "T1", id_federation: "FED1", id_club_cnac: "C1", nom_equipe: "Equipe", id_categorie_age: "AGE1", planning_entrainement_json: "broken" }
+  const club: SheetRecord = { id_club_cnac: "C1", id_federation: "FED1", nom_club: "Club" }
+  f.matrices.get("CLUBS")!.push(CNAC_HEADERS.CLUBS.map(key => club[key] || ""))
+  f.matrices.get("EQUIPES")!.push(CNAC_HEADERS.EQUIPES.map(key => row[key] || ""))
+  assert.equal((await f.territorialWrite("equipes", request({ id: "T1", row: { observations: "Autre champ" } }), "PUT")).status, 200)
+  assert.equal((await f.territorialWrite("equipes", request({ id: "T1", row: { ...row, observations: "Formulaire complet" } }), "PUT")).status, 200)
+  assert.equal(f.matrices.get("EQUIPES")![1][14], "broken")
+  const snapshots = structuredClone(f.matrices.get("EQUIPES"))
+  for (const slots of [[{ jour: 1, heure_debut: "", heure_fin: "18:00" }], [{ jour: 1, heure_debut: "16:00", heure_fin: "18:00" }, { jour: 1, heure_debut: "17:00", heure_fin: "19:00" }]]) {
+    const response = await f.territorialWrite("equipes", request({ id: "T1", row: { planning_entrainement_json: JSON.stringify(slots), fuseau_horaire_entrainement: "Africa/Kinshasa" } }), "PUT")
+    assert.equal(response.status, 400)
+    assert.equal((await response.json()).ok, undefined)
+    assert.deepEqual(f.matrices.get("EQUIPES"), snapshots)
+  }
+  f.failWrite()
+  const failure = await f.territorialWrite("equipes", request({ id: "T1", row: { observations: "Ne pas enregistrer" } }), "PUT")
+  assert.ok(!failure.ok); assert.equal((await failure.json()).ok, undefined)
+  assert.deepEqual(f.matrices.get("EQUIPES"), snapshots)
+  f.deny()
+  assert.equal((await f.territorialWrite("equipes", request({ id: "T1", row: { planning_entrainement_json: "[]" } }), "PUT")).status, 403)
+  assert.deepEqual(f.matrices.get("EQUIPES"), snapshots)
+})
+
+test("team and athlete training summaries group local times, follow active team and show safe empty/anomaly states", () => {
+  const f = fixture()
+  const { AthleteTeamTraining, TeamTrainingSummary } = f.load(resolve(root, "components/dashboard/team-training-summary.tsx")) as { AthleteTeamTraining: ComponentType<{teams: SheetRecord[]; affiliation: SheetRecord}>; TeamTrainingSummary: ComponentType<{team?: SheetRecord}> }
+  const first: SheetRecord = { id_equipe_cnac: "T1", id_club_cnac: "C1", id_federation: "FED1", nom_equipe: "Première équipe", lieu_entrainement: "Salle première", fuseau_horaire_entrainement: "Africa/Kinshasa", planning_entrainement_json: JSON.stringify([{jour:3,heure_debut:"16:00",heure_fin:"18:00"},{jour:1,heure_debut:"16:00",heure_fin:"18:00"},{jour:3,heure_debut:"09:00",heure_fin:"11:00"}]) }
+  const second = { ...first, id_equipe_cnac: "T2", lieu_entrainement: "Salle seconde" }
+  const affiliation = { id_equipe_cnac: "T1", id_club_cnac: "C1", id_federation: "FED1" }
+  const render = (value: SheetRecord) => renderToStaticMarkup(createElement(AthleteTeamTraining, { teams: [first, second], affiliation: value }))
+  const html = render(affiliation)
+  assert.match(html, /Salle première/); assert.match(html, /Africa\/Kinshasa/)
+  assert.ok(html.indexOf("Lundi") < html.indexOf("Mercredi"))
+  assert.match(html, /9 h–11 h et 16 h–18 h/)
+  assert.match(html, /ne confirme pas la présence effective/)
+  assert.doesNotMatch(html, /heure_debut|planning_entrainement_json/)
+  const changed = render({ ...affiliation, id_equipe_cnac: "T2" })
+  assert.match(changed, /Salle seconde/); assert.doesNotMatch(changed, /Salle première/)
+  assert.match(render({}), /Aucune équipe active/)
+  assert.match(renderToStaticMarkup(createElement(TeamTrainingSummary, { team: {} })), /Aucun planning/)
+  const anomaly = renderToStaticMarkup(createElement(TeamTrainingSummary, { team: { ...first, planning_entrainement_json: "{private broken" } }))
+  assert.match(anomaly, /anomalie/); assert.doesNotMatch(anomaly, /private broken/)
+})
 
 for (const [kind, sheet, existingId, name, width, range] of [
   ["zones", "ZONES", "Z1", "nom_zone", 7, "'ZONES'!A:G"],
@@ -375,7 +456,7 @@ test("team form uses age references, ordered fields and current IDs in both mode
   assert.doesNotMatch(html,/Division|Type de structure sportive|Structure sportive|Catégorie d’âge|Catégorie club interdite/)
   if(row.id_categorie_age){assert.match(html,/Seniors/);assert.match(html,/value="Elite"/);assert.match(html,/value="Conserver"/)}
  }
- const legacyHeaders=[...CNAC_HEADERS.EQUIPES.slice(0,11),"id_type_structure_sportive","id_structure_sportive_cnac","id_division"]
+ const legacyHeaders=[...CNAC_HEADERS.EQUIPES,"id_type_structure_sportive","id_structure_sportive_cnac","id_division"]
  const legacyValues: SheetRecord = {id_equipe_cnac:"OLD",nom_equipe:"Ancienne",id_type_structure_sportive:"LEGACY",id_structure_sportive_cnac:"KEEP",id_division:"D1"}
  const legacy=parseTable("EQUIPES",[legacyHeaders,legacyHeaders.map(key=>(legacyValues[key]||""))])
  assert.equal(legacy.rows[0].nom_equipe,"Ancienne")

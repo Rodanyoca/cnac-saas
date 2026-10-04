@@ -9,6 +9,7 @@ export const useCnacActorReferences=()=>useContext(Context)
 export function PersonSexOptions(){const {sexes}=useCnacActorReferences();return <>{sexes.map(sex=><SelectItem key={sex.id} value={sex.id}>{sex.label}</SelectItem>)}</>}
 export function ActorMediaInput(props:React.ComponentProps<"input">) {
   const {uploads,scoped}=useCnacActorReferences(),passport=String(props.accept||"").includes("pdf")
-  const available=!scoped || (passport?uploads.passeport:uploads.avatar)
+  // Les formulaires Athlètes utilisent ImageSelection ; les autres médias restent fermés.
+  const available=!scoped || (passport?uploads.passeport:false)
     return <Input {...props} disabled={!available || props.disabled} title={!available?"La gestion des médias n’est pas encore définie pour le CNAC.":props.title}/>
 }

@@ -201,7 +201,11 @@ export const CNAC_HEADERS = {
     "id_sexe",
     "nom_equipe",
     "statut",
-    "observations"
+    "observations",
+    "lieu_entrainement",
+    "adresse_entrainement",
+    "fuseau_horaire_entrainement",
+    "planning_entrainement_json"
   ],
   "PERSONNES_CONTACT_ENTITES": [
     "id_contact_entite",
