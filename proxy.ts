@@ -8,6 +8,8 @@ import { getAuthorizationsForUser, getUserById } from "@/lib/users/data"
 import { authenticationFailurePath } from "@/lib/auth/failure-navigation"
 import { isCnacDemoMode } from "@/lib/demo-mode"
 
+import { isLocalAuthentication, resolveLocalSession } from "@/lib/auth/local-access"
+
 function isPublicRoute(pathname: string) {
   return pathname === "/login" || pathname === "/service-indisponible" || pathname === "/api/auth/login"
 }
@@ -29,6 +31,10 @@ function deny(request: NextRequest, status = 401) {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   if (isPublicRoute(pathname)) return NextResponse.next()
+  if (isLocalAuthentication()) {
+    const session = await resolveLocalSession(request.cookies.get(SESSION_COOKIE_NAME)?.value)
+    return session ? NextResponse.next() : deny(request)
+  }
   if (isCnacDemoMode()) return NextResponse.next()
   const secret = process.env.AUTH_SECRET
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value

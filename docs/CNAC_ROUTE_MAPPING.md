@@ -214,3 +214,13 @@ FEBACO et les autres depots restent inchanges.
 ## Onglet Localisation de la fiche athlete - 4 octobre 2026
 
 La fiche CNAC propose General, Affiliations, Localisation, Controles et AUT. Localisation affiche Coming soon dans la meme carte que Controles et AUT. Aucune section supplementaire dans General, aucun champ ni stockage ajoute. Adresse conservee dans Contact. Serveurs de developpement non relances.
+
+
+### 2026-10-04 - Acces administrateur CNAC local
+
+- Connexion email/mot de passe fixe, puis cookie de session signe de 8 heures, comme le parcours FEBACO.
+- Activation explicite via `CNAC_LOCAL_AUTH=true`; identifiants et secret uniquement dans `.env.local`, ignore par Git.
+- Aucun compte FEBACO/COC ni appel au classeur USERS pour cet acces.
+- La connexion locale prend priorite sur le passage automatique du mode demonstration; les routes protegees exigent le cookie et la deconnexion le supprime.
+- La connexion ouvre le tableau de bord et donne les droits administrateur CNAC. Les adaptateurs metier et classeurs CNAC restent inchanges.
+- `NEXT_PUBLIC_CNAC_LOCAL_AUTH=true` masque le bouton de demonstration sur la page de connexion.

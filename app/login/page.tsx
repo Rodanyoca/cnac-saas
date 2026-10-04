@@ -23,7 +23,7 @@ const errorMessages: Record<Exclude<LoginError, null>, string> = {
 }
 
 export default function LoginPage() {
-  const demoMode = isCnacDemoMode()
+  const demoMode = isCnacDemoMode() && process.env.NEXT_PUBLIC_CNAC_LOCAL_AUTH !== "true"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)

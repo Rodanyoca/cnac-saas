@@ -9,6 +9,8 @@ import { resolveSession } from "@/lib/auth/session-resolution"
 import { createSessionToken } from "@/lib/auth/session-token"
 import { CNAC_DEMO_USER, isCnacDemoMode } from "@/lib/demo-mode"
 
+import { isLocalAuthentication, resolveLocalSession } from "@/lib/auth/local-access"
+
 type NewSessionInput = { idUser: string; sessionVersion: number }
 
 function getSecret(): string {
@@ -29,6 +31,10 @@ export async function destroySession() {
 }
 
 export async function getSession() {
+  if (isLocalAuthentication()) {
+    const jar = await cookies()
+    return resolveLocalSession(jar.get(SESSION_COOKIE_NAME)?.value)
+  }
   if (isCnacDemoMode()) return CNAC_DEMO_USER
   const jar = await cookies()
   const token = jar.get(SESSION_COOKIE_NAME)?.value
@@ -54,6 +60,7 @@ export async function getSession() {
 type ResolvedSession = NonNullable<Awaited<ReturnType<typeof getSession>>>
 
 export async function canAccess(block: AuthorizationBlock, action: AuthorizationAction): Promise<boolean> {
+  if (isLocalAuthentication()) return Boolean(await getSession())
   if (isCnacDemoMode()) return true
   const jar = await cookies()
   const token = jar.get(SESSION_COOKIE_NAME)?.value
@@ -69,6 +76,12 @@ export async function canAccess(block: AuthorizationBlock, action: Authorization
 }
 
 export async function getNavigationAccess(currentSession?: ResolvedSession) {
+  if (isLocalAuthentication()) {
+    const allowed = Boolean(await getSession())
+    return Object.fromEntries((["AUT-ADM", "AUT-SPT", "AUT-COM"] as const).flatMap(block =>
+      (["READ", "WRITE"] as const).map(action => [`${block}:${action}`, allowed])
+    )) as Record<`${AuthorizationBlock}:${AuthorizationAction}`, boolean>
+  }
   if (isCnacDemoMode()) return {
     "AUT-ADM:READ": true, "AUT-ADM:WRITE": true,
     "AUT-SPT:READ": true, "AUT-SPT:WRITE": true,
