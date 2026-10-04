@@ -18,7 +18,7 @@ export default function ServiceUnavailablePage() {
         </CardHeader>
         <CardContent className="flex justify-center">
           <Button asChild>
-            <Link href="/dashboard/competitions">
+            <Link href="/dashboard">
               <RefreshCw className="mr-2 h-4 w-4" />
               Réessayer
             </Link>

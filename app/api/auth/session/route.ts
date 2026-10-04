@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getNavigationAccess, getSession } from "@/lib/auth"
 
 export async function GET() {
+  try {
   const session = await getSession()
   if (!session) {
     return NextResponse.json({ user: null })
@@ -18,4 +19,5 @@ export async function GET() {
       access,
     },
   })
+  } catch { return NextResponse.json({ error: "Service d’authentification indisponible." }, { status: 503 }) }
 }

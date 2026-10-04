@@ -33,13 +33,6 @@ test("athlete affiliation references load the current eleven-column EQUIPES shee
   assert.equal(f.updates.length, 0)
 })
 
-test("local athlete editing uses the same scoped loopback exception and rejects other origins", async () => {
-  const f=fixture({}, {NODE_ENV:"development",CNAC_DEMO_MODE:"true"}, true)
-  const actor=f.load(resolve(root,"lib/cnac/actor-handler.ts")) as {actorWrite:(kind:string,request:Request,method:string)=>Promise<Response>}
-  const request=(origin:string)=>new Request("http://127.0.0.1:3000/api/athletes",{method:"POST",headers:{host:"127.0.0.1:3000",origin,"Content-Type":"application/json"},body:"{}"})
-  assert.equal((await actor.actorWrite("athletes",request("http://127.0.0.1:3000"),"POST")).status,400)
-  assert.equal((await actor.actorWrite("athletes",request("https://other.invalid"),"POST")).status,403)
-})
 
 test("team and athlete save/reload through real handlers and Sheets transport; failed writes never report success", async () => {
   const f = fixture({}, { NODE_ENV: "test" }, true)
@@ -166,7 +159,7 @@ function fixture(extraMocks: Record<string, unknown> = {}, env: Record<string, s
     [resolve(root, "lib/cnac/config.ts")]: { cnacCredentials: () => ({ email: "fixture@example.invalid", key: "fixture" }), cnacWorkbook: (sheet: string) => sheet },
     [resolve(root, "lib/federations/config.ts")]: { getReferentialSpreadsheetId: () => "refs-fixture", getTerritorialSpreadsheetId: () => "territorial-fixture" },
     [resolve(root, "lib/cnac/actor-handler.ts")]: {
-      writeAccess: async () => { accessChecks++; return env.CNAC_DEMO_MODE === "true" ? Response.json({ code: "CNAC_DEMO_READ_ONLY" }, { status: 403 }) : authorized ? undefined : Response.json({ code: "ACCESS_DENIED" }, { status: 403 }) },
+      writeAccess: async () => { accessChecks++; return authorized ? undefined : Response.json({ code: "ACCESS_DENIED" }, { status: 403 }) },
       errorResponse: (error: { code?: string; message?: string; status?: number }) => Response.json({ code: error.code, error: error.message }, { status: error.status || 500 }),
     },
     ...extraMocks,
@@ -302,6 +295,33 @@ test("four real form renders have no Division field even when division_applicabl
   }
 })
 
+test("team creation and editing render each field once in the complete federation dialog", async () => {
+  const base = fixture()
+  const { TeamFormFields } = base.load(resolve(root, "components/dashboard/team-sporting-fields.tsx")) as { TeamFormFields: ComponentType<{ row: SheetRecord; update: () => void; refs: Record<string, SheetRecord[]> }> }
+  const refs = Object.fromEntries([...base.matrices].map(([sheet, matrix]) => [sheet, parseTable(sheet, matrix).rows]))
+  const noop = () => null
+  const inlineDialog = ({ children }: { children: ReactNode }) => createElement("div", null, children)
+  const f = fixture({
+    "next/navigation": { useRouter: () => ({ refresh: noop, replace: noop }) },
+    "next/link": { __esModule: true, default: ({ children, href }: { children: ReactNode; href: string }) => createElement("a", { href }, children) },
+    [resolve(root, "components/dashboard/header.tsx")]: { Header: noop },
+    [resolve(root, "components/dashboard/federation-logo-manager.tsx")]: { FederationLogoManager: noop },
+    [resolve(root, "components/dashboard/entity-contacts-section.tsx")]: { EntityContactsSection: noop },
+    [resolve(root, "components/dashboard/team-sporting-fields.tsx")]: { TeamSportingFields: (props: { row: SheetRecord; update: () => void }) => createElement(TeamFormFields, { ...props, refs }) },
+    [resolve(root, "components/ui/dialog.tsx")]: Object.fromEntries(["Dialog", "DialogContent", "DialogDescription", "DialogFooter", "DialogHeader", "DialogTitle"].map(key => [key, inlineDialog])),
+  })
+  const data = await f.loadFederationData({ connected: true })
+  const { default: Form } = f.load(resolve(root, "app/dashboard/federations/[id]/parametres/parametres-client.tsx")) as { default: ComponentType<{ data: FederationData; federationId: string; initialEditor: { resource: string; id?: string; row: SheetRecord } }> }
+  for (const editing of [false, true]) {
+    const html = renderToStaticMarkup(createElement(Form, { data, federationId: "FED1", initialEditor: { resource: "equipes", ...(editing ? { id: "T1" } : {}), row: { id_federation: "FED1", id_club_coc: "C1", nom_equipe: "Équipe conservée", id_equipe_federation: "FED-TEAM", statut: "ACTIF" } } }))
+    const labels = [...html.matchAll(/<label\b[^>]*>([\s\S]*?)<\/label>/g)].map(match => match[1].replace(/<[^>]*>/g, "").trim())
+    for (const field of ["Fédération", "Club", "Sport", "Discipline", "Nom de l’équipe", "Catégorie équipe", "Sexe", "Statut", "Observations", "ID fédéral"]) assert.equal(labels.filter(label => label.startsWith(field)).length, 1, `${editing ? "edit" : "create"}: ${field}`)
+    assert.match(html, /value="Équipe conservée"/)
+    assert.match(html, /value="FED-TEAM"/)
+    assert.equal(labels.filter(label => label === "ID CNAC").length, editing ? 1 : 0)
+  }
+})
+
 test("Zone and Entente detail pages render without Division and keep the direct parent", async () => {
   const f = fixture({
     "next/navigation": { notFound: () => { throw new Error("Fiche introuvable") } },
@@ -322,8 +342,8 @@ test("Zone and Entente detail pages render without Division and keep the direct 
   assert.ok(f.reads.flat().every(value => !value.includes("DIVISIONS")))
 })
 
-test("local demo federation edits reach Sheets for Zone, Entente and identification", async () => {
-  const f = fixture({}, { NODE_ENV: "development", CNAC_DEMO_MODE: "true" })
+test("authorized federation edits reach Sheets for Zone, Entente and identification", async () => {
+  const f = fixture({}, { NODE_ENV: "test" })
   const request = (body: unknown, origin = "http://localhost:3000") => new Request("http://localhost:3000/api/federations/zones", { method: "PUT", headers: { "Content-Type": "application/json", host: "localhost:3000", origin }, body: JSON.stringify(body) })
   for (const [resource, id, row] of [
     ["zones", "Z1", { nom_zone: "Modifiée localement" }],
@@ -334,13 +354,10 @@ test("local demo federation edits reach Sheets for Zone, Entente and identificat
     assert.equal(response.status, 200, resource)
   }
   assert.equal(f.updates.length, 3)
-  assert.equal(f.accessChecks(), 0)
+  assert.equal(f.accessChecks(), 3)
   assert.equal(parseTable("ZONES", f.matrices.get("ZONES")!).rows[0].nom_zone, "Modifiée localement")
   assert.equal(parseTable("ENTENTES", f.matrices.get("ENTENTES")!).rows[0].nom_entente, "Modifiée localement")
   assert.equal(parseTable("FEDERATIONS", f.matrices.get("FEDERATIONS")!).rows[0].observations, "Modification locale")
-  const crossOrigin = await f.territorialWrite("zones", request({ id: "Z1", row: { nom_zone: "REFUSER" } }, "http://other.invalid"), "PUT")
-  assert.equal(crossOrigin.status, 403)
-  assert.equal(f.updates.length, 3)
 })
 
 

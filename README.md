@@ -5,16 +5,15 @@ Application indépendante du Comité National Antidopage Congolais, initialisée
 ## Démarrage local
 
 ```powershell
-if (-not (Test-Path -LiteralPath .env.local)) { Copy-Item -LiteralPath .env.example -Destination .env.local }
-npm install
-npm run dev
+npm.cmd install
+npm.cmd run dev
 ```
 
-Le mode local est activé par défaut dans l’exemple d’environnement. Il permet d’ouvrir les interfaces sans utiliser les comptes, classeurs ou dossiers du COC. Désactivez `CNAC_DEMO_MODE` et `NEXT_PUBLIC_CNAC_DEMO_MODE` uniquement après avoir configuré des ressources propres au CNAC.
+Préparez `.env.local` avec les ressources propres au CNAC. Les fichiers d’environnement sont ignorés par Git. L’application exige une connexion réelle ; une configuration incomplète ou une panne Sheets refuse l’accès. Consultez [l’authentification CNAC et l’initialisation du premier administrateur](docs/implementation/cnac-authentification-reelle.md).
 
 Consultez [la cartographie des routes](docs/CNAC_ROUTE_MAPPING.md) et [les règles du projet](AGENTS.md) avant toute adaptation métier.
 
-Consultez [la configuration des trois classeurs CNAC](docs/implementation/cnac-google-sheets-configuration.md) pour activer les lectures Structure territoriale et Acteurs. Les écritures sont refusées en mode démonstration.
+Consultez [la configuration des trois classeurs CNAC](docs/implementation/cnac-google-sheets-configuration.md) pour les blocs Structure territoriale et Acteurs. Les écritures exigent les autorisations serveur correspondantes.
 
 ## Historique du socle
 
@@ -28,7 +27,7 @@ This repository is linked to a [v0](https://v0.app) project. You can continue de
 
 ## Getting Started
 
-Create `.env.local` from `.env.example` only if it does not exist; preserve any existing local configuration. The application no longer supports the historical generic `GOOGLE_SHEETS_SPREADSHEET_ID` variable. Authentication requires `GOOGLE_SHEETS_USERS_SPREADSHEET_ID`; its workbook must contain a `USERS` sheet with the expected headers.
+Preserve existing local configuration. The application no longer supports the historical generic `GOOGLE_SHEETS_SPREADSHEET_ID` variable. Authentication requires `GOOGLE_SHEETS_USERS_SPREADSHEET_ID`, `AUTH_SECRET` and `AUTH_TELEMETRY_HMAC_KEY`; the dedicated workbook must contain the four authentication sheets described in the CNAC authentication guide.
 
 First, run the development server:
 

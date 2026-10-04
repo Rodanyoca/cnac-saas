@@ -5,7 +5,7 @@ import { SESSION_TTL_SECONDS } from "../../lib/auth/session-token.ts"
 import { isPendingPasswordRouteAllowed } from "../../lib/auth/session-policy.ts"
 
 test("définit les attributs de sécurité et la durée du cookie", () => {
-  assert.equal(SESSION_COOKIE_NAME, "coc_session")
+  assert.equal(SESSION_COOKIE_NAME, "cnac_session")
   assert.deepEqual(sessionCookieOptions(true), { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: SESSION_TTL_SECONDS })
   assert.equal(sessionCookieOptions(false).secure, false)
 })

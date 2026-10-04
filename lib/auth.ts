@@ -2,21 +2,21 @@ import "server-only"
 
 import { cookies } from "next/headers"
 import { getAuthorizationsForUser, getUserById } from "@/lib/users/data"
-import { authorize, type AuthorizationAction } from "@/lib/auth/authorization"
+import { authorize, authorizeWithSource, type AuthorizationAction } from "@/lib/auth/authorization"
 import type { AuthorizationBlock } from "@/lib/users/types"
 import { SESSION_COOKIE_NAME, sessionCookieOptions } from "@/lib/auth/session-cookie"
 import { resolveSession } from "@/lib/auth/session-resolution"
 import { createSessionToken } from "@/lib/auth/session-token"
-import { CNAC_DEMO_USER, isCnacDemoMode } from "@/lib/demo-mode"
 
-import { isLocalAuthentication, resolveLocalSession } from "@/lib/auth/local-access"
+
+import { getAuthSecret, validateAuthenticationConfiguration } from "@/lib/auth/config"
+import { AuthenticationUnavailableError } from "@/lib/auth/errors"
 
 type NewSessionInput = { idUser: string; sessionVersion: number }
 
 function getSecret(): string {
-  const secret = process.env.AUTH_SECRET
-  if (!secret) throw new Error("AUTH_SECRET is not defined in environment variables")
-  return secret
+  validateAuthenticationConfiguration()
+  return getAuthSecret()
 }
 
 export async function createSession(input: NewSessionInput) {
@@ -31,16 +31,14 @@ export async function destroySession() {
 }
 
 export async function getSession() {
-  if (isLocalAuthentication()) {
-    const jar = await cookies()
-    return resolveLocalSession(jar.get(SESSION_COOKIE_NAME)?.value)
-  }
-  if (isCnacDemoMode()) return CNAC_DEMO_USER
   const jar = await cookies()
   const token = jar.get(SESSION_COOKIE_NAME)?.value
   if (!token) return null
   const resolution = await resolveSession({ token, secret: getSecret(), loadUser: getUserById })
-  if (!resolution.ok) return null
+  if (!resolution.ok) {
+    if (resolution.reason === "SOURCE_UNAVAILABLE") throw new AuthenticationUnavailableError()
+    return null
+  }
   const { user, payload } = resolution
   return {
     id: user.idUser,
@@ -60,42 +58,25 @@ export async function getSession() {
 type ResolvedSession = NonNullable<Awaited<ReturnType<typeof getSession>>>
 
 export async function canAccess(block: AuthorizationBlock, action: AuthorizationAction): Promise<boolean> {
-  if (isLocalAuthentication()) return Boolean(await getSession())
-  if (isCnacDemoMode()) return true
   const jar = await cookies()
   const token = jar.get(SESSION_COOKIE_NAME)?.value
   if (!token) return false
   const resolution = await resolveSession({ token, secret: getSecret(), loadUser: getUserById })
   if (!resolution.ok || resolution.requiresActivation) return false
-  try {
-    const authorizations = await getAuthorizationsForUser(resolution.user.idUser)
-    return authorize({ user: resolution.user, authorizations, requirement: { scope: "BUSINESS", blocks: [block] }, action }).allowed
-  } catch {
-    return false
-  }
+  const decision = await authorizeWithSource({ user: resolution.user, requirement: { scope: "BUSINESS", blocks: [block] }, action, loadAuthorizations: () => getAuthorizationsForUser(resolution.user.idUser) })
+  return decision.allowed
 }
 
 export async function getNavigationAccess(currentSession?: ResolvedSession) {
-  if (isLocalAuthentication()) {
-    const allowed = Boolean(await getSession())
-    return Object.fromEntries((["AUT-ADM", "AUT-SPT", "AUT-COM"] as const).flatMap(block =>
-      (["READ", "WRITE"] as const).map(action => [`${block}:${action}`, allowed])
-    )) as Record<`${AuthorizationBlock}:${AuthorizationAction}`, boolean>
-  }
-  if (isCnacDemoMode()) return {
-    "AUT-ADM:READ": true, "AUT-ADM:WRITE": true,
-    "AUT-SPT:READ": true, "AUT-SPT:WRITE": true,
-    "AUT-COM:READ": true, "AUT-COM:WRITE": true,
-  } as Record<`${AuthorizationBlock}:${AuthorizationAction}`, boolean>
   const session = currentSession ?? await getSession()
   const blocks = ["AUT-ADM", "AUT-SPT", "AUT-COM"] as const
   const actions = ["READ", "WRITE"] as const
-  if (session?.estSuperAdmin) {
+  if (session?.estSuperAdmin && !session.doitChangerMotDePasse) {
     return Object.fromEntries((blocks.flatMap((block) =>
       actions.map((action) => [`${block}:${action}`, true] as const)
     ))) as Record<`${AuthorizationBlock}:${AuthorizationAction}`, boolean>
   }
-  if (!session) return Object.fromEntries(blocks.flatMap((block) => actions.map((action) => [`${block}:${action}`, false]))) as Record<`${AuthorizationBlock}:${AuthorizationAction}`, boolean>
+  if (!session || session.doitChangerMotDePasse) return Object.fromEntries(blocks.flatMap((block) => actions.map((action) => [`${block}:${action}`, false]))) as Record<`${AuthorizationBlock}:${AuthorizationAction}`, boolean>
   try {
     const authorizations = await getAuthorizationsForUser(session.idUser)
     return Object.fromEntries(blocks.flatMap((block) => actions.map((action) => [
@@ -103,6 +84,6 @@ export async function getNavigationAccess(currentSession?: ResolvedSession) {
       authorize({ user: { idUser: session.idUser, typeUser: session.typeUser, estSuperAdmin: session.estSuperAdmin }, authorizations, requirement: { scope: "BUSINESS", blocks: [block] }, action }).allowed,
     ]))) as Record<`${AuthorizationBlock}:${AuthorizationAction}`, boolean>
   } catch {
-    return Object.fromEntries(blocks.flatMap((block) => actions.map((action) => [`${block}:${action}`, false]))) as Record<`${AuthorizationBlock}:${AuthorizationAction}`, boolean>
+    throw new AuthenticationUnavailableError()
   }
 }

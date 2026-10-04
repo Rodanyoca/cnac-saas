@@ -2,7 +2,6 @@ import "server-only"
 
 import { sheets as createSheets, auth as googleAuth } from "googleapis/build/src/apis/sheets"
 import { runGoogleRequest } from "./request"
-import { isCnacDemoMode } from "../demo-mode"
 
 // --- In-memory cache to avoid Google Sheets API quota limits ---
 const CACHE_TTL_MS = Number.parseInt(process.env.GOOGLE_SHEETS_CACHE_TTL_MS ?? "300000", 10)
@@ -68,7 +67,6 @@ function isScopedCnacWorkbook(id: string) {
 }
 function getSheetCredentials(spreadsheetId: string) {
   if (isScopedCnacWorkbook(spreadsheetId)) throw new Error("Ce classeur CNAC exige le service dédié aux blocs Acteurs et Structure territoriale.")
-  if (isCnacDemoMode()) return { spreadsheetId: spreadsheetId?.trim() || "CNAC-DEMO" }
   if (!spreadsheetId?.trim()) throw new Error("Identifiant du classeur Google Sheets manquant.")
   return { spreadsheetId }
 }
@@ -117,7 +115,6 @@ export async function getSheetRows(params: {
   bypassCache?: boolean
   cacheTtlMs?: number
 }): Promise<Record<string, string>[]> {
-  if (isCnacDemoMode() || isScopedCnacWorkbook(params.spreadsheetId)) return []
   const { spreadsheetId } = getSheetCredentials(params.spreadsheetId)
   const safeSheetName = String(params.sheetName ?? "").replace(/'/g, "''")
   const range = params.range ?? `'${safeSheetName}'!A:Z`
@@ -184,7 +181,6 @@ export async function getSheetHeaders(params: {
   bypassCache?: boolean
   cacheTtlMs?: number
 }): Promise<string[]> {
-  if (isCnacDemoMode() || isScopedCnacWorkbook(params.spreadsheetId)) return []
   const { spreadsheetId } = getSheetCredentials(params.spreadsheetId)
   const safeSheetName = String(params.sheetName).replace(/'/g, "''")
   const cacheKey = `${spreadsheetId}:'${safeSheetName}'!1:1`
@@ -209,7 +205,6 @@ export async function getSheetsRows(params: {
   cacheTtlMs?: number
   bypassCache?: boolean
 }): Promise<Record<string, Record<string, string>[]>> {
-  if (isCnacDemoMode() || isScopedCnacWorkbook(params.spreadsheetId)) return Object.fromEntries(params.sheetNames.map((name) => [name, []]))
   const { spreadsheetId } = getSheetCredentials(params.spreadsheetId)
   const cachedResult: Record<string, Record<string, string>[]> = {}
   const allCached = !params.bypassCache && params.sheetNames.every((sheetName) => {
@@ -247,7 +242,6 @@ export async function getSheetsRows(params: {
 }
 
 export async function getSheetsTables(params: { sheetNames: string[]; spreadsheetId: string }) {
-  if (isCnacDemoMode() || isScopedCnacWorkbook(params.spreadsheetId)) return Object.fromEntries(params.sheetNames.map((name) => [name, { headers: [], rows: [] }]))
   const { spreadsheetId } = getSheetCredentials(params.spreadsheetId)
   const auth = getGoogleAuth(["https://www.googleapis.com/auth/spreadsheets.readonly"])
   const sheets = createSheets({ version: "v4", auth })
@@ -322,6 +316,7 @@ export async function updateSheetCells(params: {
   idColumn: string
   idValue: string
   updates: { column: string; value: string }[]
+  bypassCache?: boolean
   spreadsheetId: string
 }): Promise<void> {
   const { spreadsheetId } = getSheetCredentials(params.spreadsheetId)
@@ -331,8 +326,8 @@ export async function updateSheetCells(params: {
   const sheets = createSheets({ version: "v4", auth })
   const safeSheetName = String(params.sheetName ?? "").replace(/'/g, "''")
   const [headers, rows] = await Promise.all([
-    getSheetHeaders({ sheetName: params.sheetName, spreadsheetId }),
-    getSheetRows({ sheetName: params.sheetName, spreadsheetId }),
+    getSheetHeaders({ sheetName: params.sheetName, spreadsheetId, bypassCache: params.bypassCache }),
+    getSheetRows({ sheetName: params.sheetName, spreadsheetId, bypassCache: params.bypassCache }),
   ])
   if (headers.length === 0) throw new Error("La feuille est vide")
   const idColIdx = headers.indexOf(params.idColumn)
@@ -367,6 +362,7 @@ export async function updateSheetCells(params: {
 }
 
 export async function appendSheetRow(params: {
+  bypassCache?: boolean
   sheetName: string
   row: Record<string, string>
   spreadsheetId: string
@@ -375,7 +371,7 @@ export async function appendSheetRow(params: {
   const auth = getGoogleAuth(["https://www.googleapis.com/auth/spreadsheets"])
   const sheets = createSheets({ version: "v4", auth })
   const safeSheetName = params.sheetName.replace(/'/g, "''")
-  const headers = await getSheetHeaders({ sheetName: params.sheetName, spreadsheetId })
+  const headers = await getSheetHeaders({ sheetName: params.sheetName, spreadsheetId, bypassCache: params.bypassCache })
   if (headers.length === 0) throw new Error(`La feuille "${params.sheetName}" ne contient pas d'en-têtes`)
   await runGoogleRequest(() => sheets.spreadsheets.values.append({
     spreadsheetId,

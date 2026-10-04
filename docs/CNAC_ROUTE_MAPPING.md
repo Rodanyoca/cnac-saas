@@ -52,7 +52,7 @@ Ce premier lot reproduit l’interface et les fonctions du COC. L’adaptation m
 
 Les colonnes de logo, avatar et passeport héritées du classeur COC ne font pas partie du schéma CNAC : elles ne sont pas exposées aux écrans et leurs uploads restent désactivés. Les cellules déjà présentes dans Sheets ne sont ni supprimées ni modifiées par les mises à jour métier.
 
-Les API `auth`, `dashboard`, `federations`, `athletes`, `officiels`, `coachs`, `medecins`, `arbitres`, `autres`, `competitions`, `equipes-nationales`, `activites`, `documents`, `site-web`, `users` et `upload-media` sont présentes. En démonstration, les lectures Sheets sont neutralisées ; les écritures externes restent à connecter à des ressources CNAC dédiées.
+Les API `auth`, `dashboard`, `federations`, `athletes`, `officiels`, `coachs`, `medecins`, `arbitres`, `autres`, `competitions`, `equipes-nationales`, `activites`, `documents`, `site-web`, `users` et `upload-media` sont présentes. Elles exigent une session USERS CNAC valide et les autorisations serveur du bloc concerné. Les ressources externes doivent être propres au CNAC.
 
 ## Vérification visuelle
 
@@ -216,7 +216,7 @@ FEBACO et les autres depots restent inchanges.
 La fiche CNAC propose General, Affiliations, Localisation, Controles et AUT. Localisation affiche Coming soon dans la meme carte que Controles et AUT. Aucune section supplementaire dans General, aucun champ ni stockage ajoute. Adresse conservee dans Contact. Serveurs de developpement non relances.
 
 
-### 2026-10-04 - Acces administrateur CNAC local
+### 2026-10-04 - Acces administrateur CNAC local (historique, supprimé)
 
 - Connexion email/mot de passe fixe, puis cookie de session signe de 8 heures, comme le parcours FEBACO.
 - Activation explicite via `CNAC_LOCAL_AUTH=true`; identifiants et secret uniquement dans `.env.local`, ignore par Git.
@@ -244,3 +244,13 @@ La fiche CNAC propose General, Affiliations, Localisation, Controles et AUT. Loc
 - Sources consultees le 4 octobre 2026 : Code du numerique RDC (https://are.gouv.cd/download/ordonnance-loi-23-010-du-13-mars-portant-code-du-numerique/), standard AMA en vigueur (https://www.wada-ama.org/en/resources/world-anti-doping-code-and-international-standards/international-standard-protection), Vercel Web Analytics (https://vercel.com/docs/analytics/privacy-policy). Le standard AMA 2027 annonce pour le 1er janvier 2027 n’est pas presente comme deja en vigueur.
 
 - Ajustement login : liens Politique de confidentialite et Conditions d’utilisation places directement sous le formulaire, soulignes et plus contrastes.
+
+### 2026-10-04 — Authentification réelle CNAC
+
+Les anciens accès locaux et démonstration décrits plus haut sont supprimés. Login, activation obligatoire, compte et déconnexion utilisent exclusivement USERS CNAC, des mots de passe hachés et le cookie `cnac_session`. Les pages et API appliquent les permissions réelles et le contrôle d’origine des mutations. La déconnexion révoque les anciennes versions de session. Le premier administrateur est créé uniquement par le CLI, avec une identité fournie par le responsable et aucun mot de passe par défaut.
+
+Les quatre feuilles d’authentification ont des en-têtes conformes, contrôlés en lecture seule. La clé de télémétrie locale a ensuite été configurée dans `.env.local`, sans versionnement ; la configuration est valide. Le contrôle à blanc du premier administrateur a réussi, sans création de compte par l’agent. Le guide [Authentification réelle CNAC](implementation/cnac-authentification-reelle.md) détaille les variables, commandes, contrôles et limites. COC et FEBACO restent inchangés.
+
+### Formulaire Équipe : suppression des champs en double
+
+Le dialogue d’ajout et de modification d’une équipe affiche les champs du composant `TeamSportingFields` une seule fois. L’éditeur conserve uniquement les identifiants CNAC et fédéral autour de ce composant ; il ne répète plus Nom, Club et Statut. Le club reste obligatoire, avec les mêmes valeurs et mappings d’enregistrement. Un test du dialogue complet contrôle l’unicité des champs dans les deux modes et la conservation des valeurs en modification.

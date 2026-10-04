@@ -2,13 +2,14 @@ import { randomUUID } from "node:crypto"
 import { createInterface } from "node:readline/promises"
 import { stdin, stdout } from "node:process"
 import nextEnv from "@next/env"
-import { google } from "googleapis"
+import { sheets as createSheets, auth as googleAuth } from "googleapis/build/src/apis/sheets/index.js"
+import { validateAuthenticationConfiguration } from "../lib/auth/config.ts"
 import { resetUserAccess } from "../lib/auth/account-workflows.ts"
 import { UsersRepository } from "../lib/users/repository.ts"
 import { AUDIT_LOG_HEADERS, AUDIT_LOG_SHEET, USER_HEADERS, USERS_SHEET, type SheetRow, type UsersSheetsAdapter } from "../lib/users/types.ts"
 
 nextEnv.loadEnvConfig(process.cwd())
-const CONFIRMATION = "REINITIALISER ACCES USR-0001"
+const google = { auth: googleAuth, sheets: createSheets }
 
 function auth(scopes: string[]) {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim(), key = (process.env.GOOGLE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n")
@@ -32,7 +33,11 @@ function adapter(): UsersSheetsAdapter {
 }
 
 async function main() {
-  const source = adapter(), target = await new UsersRepository(source).requireUserById("USR-0001")
+  const index = process.argv.indexOf("--id"), id = index >= 0 ? process.argv[index + 1]?.trim() : ""
+  if (!id || id.startsWith("--")) throw new Error("Argument --id obligatoire.")
+  const CONFIRMATION = `REINITIALISER ACCES ${id}`
+  validateAuthenticationConfiguration()
+  const source = adapter(), target = await new UsersRepository(source).requireUserById(id)
   stdout.write(`${JSON.stringify({ mode: process.argv.includes("--execute") ? "EXECUTION_PENDING" : "DRY_RUN", idUser: target.idUser, email: target.email, doitChangerMotDePasse: target.doitChangerMotDePasse, statut: target.statut, prochaineSessionVersion: target.sessionVersion + 1, expirationHours: 24 }, null, 2)}\n`)
   if (!process.argv.includes("--execute")) { stdout.write("Contrôle à blanc terminé. Aucune écriture effectuée.\n"); return }
   if (!stdin.isTTY || !stdout.isTTY) throw new Error("Le mode --execute exige un terminal interactif.")

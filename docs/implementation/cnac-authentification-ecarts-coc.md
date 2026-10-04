@@ -2,6 +2,8 @@
 
 Date : 4 octobre 2026. Périmètre : documentation et code des dépôts locaux COC et CNAC. Étude en lecture seule du COC ; aucune modification du code applicatif, des variables, des comptes ou des classeurs. Aucun déploiement.
 
+> État historique avant implémentation. Le mode temporaire décrit dans ce rapport est supprimé. Consulter [l’authentification réelle CNAC](cnac-authentification-reelle.md) pour le fonctionnement et le bootstrap actuels.
+
 ## Décision proposée
 
 CNAC possède déjà l’essentiel du système d’authentification COC. Il faut remettre en service cette branche héritée, connecter un classeur utilisateurs propre au CNAC et amorcer son premier administrateur, plutôt que développer un nouveau système. Le compte temporaire configuré dans l’environnement et le mode démonstration contournent actuellement cette branche. Le classeur `USERS` seul ne suffit pas : quatre feuilles techniques et le référentiel des trois blocs sont nécessaires.

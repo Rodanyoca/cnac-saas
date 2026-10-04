@@ -8,7 +8,6 @@ import { cnacError } from "../../lib/cnac/errors.ts"
 import { actorPatch } from "../../lib/cnac/actors-model.ts"
 import { parentKind,resolveTerritorialRows,territorialPatch } from "../../lib/cnac/territorial-model.ts"
 import { sexCode,sexId } from "../../lib/cnac/display.ts"
-import { canWriteLocalTerritorialMutation } from "../../lib/demo-mode.ts"
 import { mapTypeStructureRow } from "../../lib/federations/mappers.ts"
 
 const refs={FEDERATIONS:[{id_federation:"FED001",id_sport:"SP01"},{id_federation:"FED002",id_sport:"SP02"}],ENTITES:[{id_entite:"ENT001"}],SEXES:[{id_sexe:"01"},{id_sexe:"02"},{id_sexe:"03"}],SPECIALITES_MEDECIN:[{id_specialite_sante:"SPE01"}],TYPES_STRUCTURE:[{id_type_structure:"T1",nom_type_structure:"FEDERATION"},{id_type_structure:"T2",nom_type_structure:"LIGUE"},{id_type_structure:"T3",nom_type_structure:"CERCLE"},{id_type_structure:"T4",nom_type_structure:"CLUB"}],PROVINCES:[{id_province:"P1"}],VILLES:[{id_ville:"V1",id_province:"P1"}],CATEGORIES_CLUB:[{id_categorie_club:"CAT1",id_federation:"FED002"}]}
@@ -135,21 +134,6 @@ test("Duplicated territorial parents remain ambiguous rather than choosing a rec
 test("Missing optional OAuth disables uploads without altering Sheets configuration",()=>{
  assert.deepEqual(cnacUploadAvailability({}),{avatar:false,passeport:false,logo:false})
  assert.deepEqual(cnacUploadAvailability({GOOGLE_OAUTH_CLIENT_ID:"client",GOOGLE_OAUTH_CLIENT_SECRET:"secret",GOOGLE_DRIVE_REFRESH_TOKEN:"token",GOOGLE_DRIVE_ACTEURS_AVATARS_FOLDER_ID:"folder",GOOGLE_DRIVE_FEDERATION_LOGOS_FOLDER_ID:"logos"}),{avatar:false,passeport:false,logo:false})
-})
-test("Local demo mode allows territorial creates and updates but never deletes or production writes",()=>{
- const localDemo={NODE_ENV:"development",CNAC_DEMO_MODE:"true"}
- const localRequest={host:"localhost:3000",origin:"http://localhost:3000"}
- assert.equal(canWriteLocalTerritorialMutation("hierarchie","POST",localDemo,localRequest.host,localRequest.origin),true)
- assert.equal(canWriteLocalTerritorialMutation("zones","POST",localDemo,localRequest.host,localRequest.origin),true)
- assert.equal(canWriteLocalTerritorialMutation("ligues","PUT",localDemo,localRequest.host,localRequest.origin),true)
- assert.equal(canWriteLocalTerritorialMutation("clubs","POST",localDemo,localRequest.host,localRequest.origin),true)
- assert.equal(canWriteLocalTerritorialMutation("hierarchie","DELETE",localDemo,localRequest.host,localRequest.origin),false)
- assert.equal(canWriteLocalTerritorialMutation("identification","PUT",localDemo,localRequest.host,localRequest.origin),true)
- assert.equal(canWriteLocalTerritorialMutation("hierarchie","POST",{...localDemo,NODE_ENV:"production"},localRequest.host,localRequest.origin),false)
- assert.equal(canWriteLocalTerritorialMutation("hierarchie","POST",{NODE_ENV:"development"},localRequest.host,localRequest.origin),false)
- assert.equal(canWriteLocalTerritorialMutation("hierarchie","POST",localDemo,"192.168.1.20:3000","http://192.168.1.20:3000"),false)
- assert.equal(canWriteLocalTerritorialMutation("hierarchie","POST",localDemo,localRequest.host,"http://evil.invalid"),false)
- assert.equal(canWriteLocalTerritorialMutation("hierarchie","POST",localDemo,localRequest.host,""),false)
 })
 
 test("Native contact booleans retain the canonical value used by principal-contact validation",()=>{

@@ -55,11 +55,11 @@ export async function getAuthenticationSnapshot(email: string) {
   validateUsersHeaders(tables[USERS_SHEET].headers)
   validateAuthAttemptHeaders(tables[AUTH_ATTEMPTS_SHEET].headers)
   validateUserAuthorizationHeaders(tables[USER_AUTHORIZATIONS_SHEET].headers)
-  const users = tables[USERS_SHEET].rows.map((row, index) => parseUser(row, index + 2))
+  const users = tables[USERS_SHEET].rows.filter(row => Object.values(row).some(value => value.trim())).map((row, index) => parseUser(row, index + 2))
   if (new Set(users.map((item) => item.idUser)).size !== users.length || new Set(users.map((item) => item.email)).size !== users.length) throw new Error("USERS contient un identifiant ou un e-mail dupliqué.")
   const user = users.find((item) => item.email === normalizeEmail(email)) ?? null
-  const attempts = tables[AUTH_ATTEMPTS_SHEET].rows.map((row, index) => parseAuthAttempt(row, index + 2))
-  const allAuthorizations = tables[USER_AUTHORIZATIONS_SHEET].rows.map((row, index) => parseUserAuthorization(row, index + 2))
+  const attempts = tables[AUTH_ATTEMPTS_SHEET].rows.filter(row => Object.values(row).some(value => value.trim())).map((row, index) => parseAuthAttempt(row, index + 2))
+  const allAuthorizations = tables[USER_AUTHORIZATIONS_SHEET].rows.filter(row => Object.values(row).some(value => value.trim())).map((row, index) => parseUserAuthorization(row, index + 2))
   assertNoAuthorizationOverlaps(allAuthorizations)
   const authorizations = user ? allAuthorizations.filter((item) => item.idUser === user.idUser) : []
   return { user, attempts, authorizations }

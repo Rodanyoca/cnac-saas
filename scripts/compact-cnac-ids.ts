@@ -18,7 +18,7 @@ async function main() {
   const owner = new Map<string, Workbook>()
   for (const group of ["REFERENTIEL", "STRUCTURE_TERRITORIALE", "ACTEURS"] as const) {
     const id = process.env[`GOOGLE_SHEETS_${group}_SPREADSHEET_ID`]
-    if (!id || id === "A_COMPLETER" || id === "CNAC-DEMO") throw new Error(`Classeur CNAC ${group} non configuré : inventaire incomplet.`)
+    if (!id || id === "A_COMPLETER") throw new Error(`Classeur CNAC ${group} non configuré : inventaire incomplet.`)
     const meta = await api.spreadsheets.get({ spreadsheetId: id, fields: "properties.title,sheets.properties.title" }, { timeout: 20000 })
     if (!/CNAC/i.test(meta.data.properties?.title || "")) throw new Error(`Le classeur ${group} n'est pas identifié CNAC : opération refusée.`)
     const sheets = (meta.data.sheets || []).map(item => item.properties?.title || "").filter(Boolean)

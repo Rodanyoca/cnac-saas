@@ -15,8 +15,8 @@
 
 ## Données et connexions
 
-- `CNAC_DEMO_MODE=true` isole l’application : aucune lecture Google Sheets COC et aucun compte COC ne doivent être utilisés.
-- Les données temporaires et adaptateurs de démonstration restent séparés du code métier de production.
+- L’authentification utilise exclusivement le classeur USERS CNAC et des mots de passe hachés côté serveur. Toute panne de configuration ou de source refuse l’accès.
+- Les fixtures restent dans les tests ; les pages et API utilisent les données et autorisations CNAC réelles. Le premier administrateur est créé uniquement par le CLI de bootstrap.
 - Les identifiants de classeurs, dossiers Drive et secrets doivent être propres au CNAC et uniquement placés dans `.env.local`, jamais versionnés.
 
 ## Qualité

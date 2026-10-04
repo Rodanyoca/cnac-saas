@@ -10,11 +10,11 @@ test("les lectures groupées Sheets réutilisent le cache par plage", async () =
   assert.match(batchSection, /setCache/)
 })
 
-test("la connexion lit son contexte en un lot et reporte les écritures de succès", async () => {
+test("la connexion lit son contexte en un lot et confirme les écritures avant le cookie", async () => {
   const source = await readFile(new URL("../../app/api/auth/login/route.ts", import.meta.url), "utf8")
   assert.match(source, /getAuthenticationSnapshot\(email\)/)
-  assert.match(source, /after\(async \(\) =>/)
-  assert.match(source, /Promise\.allSettled/)
+  assert.doesNotMatch(source, /after\(|Promise\.allSettled/)
+  assert.ok(source.indexOf("touchLastConnection") < source.indexOf("await createSession"))
   assert.doesNotMatch(source, /repository\.getAuthAttempts/)
   assert.doesNotMatch(source, /repository\.getUserByEmail/)
 })
@@ -23,5 +23,5 @@ test("les chargements concernés utilisent un gris léger", async () => {
   const files = await Promise.all(["../../app/dashboard/federations/loading.tsx", "../../app/dashboard/federations/[id]/loading.tsx", "../../app/login/login.module.css"].map((path) => readFile(new URL(path, import.meta.url), "utf8")))
   assert.ok(files[0].includes("bg-slate-200/80"))
   assert.ok(files[1].includes("bg-slate-200/80"))
-  assert.match(files[2], /\.submit:disabled \{ background: #e5e7eb;/)
+  assert.match(files[2], /\.submit:disabled \{ background: #31516d;/)
 })

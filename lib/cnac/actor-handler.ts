@@ -3,7 +3,6 @@ import "server-only"
 import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
 import { canAccess } from "@/lib/auth"
-import { isCnacDemoMode, canWriteLocalTerritorialMutation } from "@/lib/demo-mode"
 import { getActeursSpreadsheetId } from "@/lib/acteurs/config"
 import { getReferentialSpreadsheetId } from "@/lib/federations/config"
 import { ACTOR_CONFIGS, actorPatch, type ActorKind } from "./actors-model"
@@ -14,7 +13,6 @@ import { cnacError } from "./errors"
 import { nextCompactCnacId, recordIds, withCnacCreationQueue } from "./identifiers"
 
 export async function writeAccess() {
-  if(isCnacDemoMode())return NextResponse.json({error:"Consultation locale CNAC : aucune session utilisateur réelle. Écriture refusée tant que les accès CNAC ne sont pas configurés.",code:"CNAC_DEMO_READ_ONLY"},{status:403})
   if(!(await canAccess("AUT-SPT","WRITE")))return NextResponse.json({error:"Accès en écriture refusé.",code:"ACCESS_DENIED"},{status:403})
 }
 export function errorResponse(error:unknown) { const failure=cnacError(error);console.error("[CNAC API]",{code:failure.code});return NextResponse.json({error:failure.message,code:failure.code},{status:failure.status}) }
@@ -28,7 +26,7 @@ export async function actorWrite(kind:ActorKind,request:Request,method:"POST"|"P
 }
 
 async function actorWriteRecord(kind:ActorKind,request:Request,method:"POST"|"PUT") {
-  if (!canWriteLocalTerritorialMutation(kind, method, process.env, request.headers.get("host") || "", request.headers.get("origin") || "")) { const denied=await writeAccess();if(denied)return denied }
+  const denied=await writeAccess();if(denied)return denied
   try{
     let body:{id?:unknown;row?:Record<string,unknown>}
     try{body=await request.json()}catch{throw new CnacDataError("INVALID_BODY","Corps JSON invalide.")}

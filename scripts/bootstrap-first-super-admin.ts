@@ -1,13 +1,16 @@
 import { createInterface } from "node:readline/promises"
 import { stdin, stdout } from "node:process"
 
-import { google } from "googleapis"
+import { sheets as createSheets, auth as googleAuth } from "googleapis/build/src/apis/sheets/index.js"
 import nextEnv from "@next/env"
 
+import { validateAuthenticationConfiguration } from "../lib/auth/config.ts"
+import { validateUsersHeaders, validateUserAuthorizationHeaders, validateAuthAttemptHeaders, validateAuditLogHeaders } from "../lib/users/validation.ts"
 import { dryRunFirstSuperAdmin, executeFirstSuperAdmin } from "../lib/users/bootstrap.ts"
 import { USER_HEADERS, USERS_SHEET, type SheetRow, type UsersSheetsAdapter } from "../lib/users/types.ts"
 
 const CONFIRMATION = "CREER LE PREMIER SUPER ADMINISTRATEUR"
+const google = { auth: googleAuth, sheets: createSheets }
 
 nextEnv.loadEnvConfig(process.cwd())
 
@@ -81,7 +84,11 @@ async function main() {
     nomComplet: argument("nom"),
     email: argument("email"),
   }
+  validateAuthenticationConfiguration()
   const adapter = createCliAdapter()
+  for (const [sheet, validate] of [["USERS", validateUsersHeaders], ["USER_AUTORISATIONS", validateUserAuthorizationHeaders], ["AUTH_TENTATIVES", validateAuthAttemptHeaders], ["JOURNAL_OPERATIONS", validateAuditLogHeaders]] as const) {
+    validate(await adapter.readHeaders(sheet, { fresh: true }))
+  }
   const dryRun = await dryRunFirstSuperAdmin(adapter, input)
 
   stdout.write(`${JSON.stringify(dryRun, null, 2)}\n`)
@@ -104,7 +111,7 @@ async function main() {
 }
 
 main().catch((error: unknown) => {
-  const message = error instanceof Error ? error.message : "Échec inconnu."
+  const message = error instanceof Error && /^(Argument|AUTH_|GOOGLE_SHEETS_USERS|USERS|USER_AUTORISATIONS|AUTH_TENTATIVES|JOURNAL_OPERATIONS|Le mode|Confirmation|Identifiants|Un |La |Aucun)/.test(error.message) ? error.message : "Bootstrap indisponible : vérifiez la configuration et les accès au classeur CNAC."
   process.stderr.write(`${message}\n`)
   process.exitCode = 1
 })

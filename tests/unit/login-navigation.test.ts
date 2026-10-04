@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises"
 test("la connexion recharge la destination après la pose du cookie", async () => {
   const source = await readFile(new URL("../../app/login/page.tsx", import.meta.url), "utf8")
 
-  assert.match(source, /window\.location\.assign\(normalizeLoginRedirect\(result\.redirectTo\)\)/)
+  assert.match(source, /window\.location\.(?:assign|replace)\(normalizeLoginRedirect\(result\.redirectTo\)\)/)
   assert.doesNotMatch(source, /router\.push\(normalizeLoginRedirect/)
 })
 

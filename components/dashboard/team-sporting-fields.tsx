@@ -24,7 +24,7 @@ export function TeamSportingFields({ row, update, onReady }: { row: Record<strin
 }
 
 export function TeamFormFields({ row, update, refs }: { row: Record<string, string>; update: (key: string, value: string) => void; refs: AffiliationReferences }) {
-  const choice = (label: string, key: string, sheet: string, id: string, name: string, filter: (item: Record<string, string>) => boolean = () => true) => <AffiliationChoice required={key === "id_categorie_age"} label={label} value={row[key]} options={(refs[sheet] || []).filter(item => item[id] && filter(item)).map(item => ({ id: item[id], name: item[name] }))} onChange={value => update(key, value)} />
+  const choice = (label: string, key: string, sheet: string, id: string, name: string, filter: (item: Record<string, string>) => boolean = () => true) => <AffiliationChoice required={key === "id_categorie_age" || key === "id_club_coc"} label={label} value={row[key]} options={(refs[sheet] || []).filter(item => item[id] && filter(item)).map(item => ({ id: item[id], name: item[name] }))} onChange={value => update(key, value)} />
   return <>
     {choice("Fédération", "id_federation", "FEDERATIONS", "id_federation", "nom_federation", item => item.id_federation === row.id_federation)}
     {choice("Club", "id_club_coc", "CLUBS", "id_club_cnac", "nom_club", item => item.id_federation === row.id_federation)}

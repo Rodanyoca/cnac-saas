@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import styles from "./login.module.css"
-import { isCnacDemoMode } from "@/lib/demo-mode"
 
 type LoginError = "credentials" | "service" | "validation" | null
 type SubmissionPhase = "idle" | "request" | "redirect"
@@ -24,12 +23,12 @@ const errorMessages: Record<Exclude<LoginError, null>, string> = {
 }
 
 export default function LoginPage() {
-  const demoMode = isCnacDemoMode() && process.env.NEXT_PUBLIC_CNAC_LOCAL_AUTH !== "true"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [phase, setPhase] = useState<SubmissionPhase>("idle")
   const [error, setError] = useState<LoginError>(null)
+  const [serviceMessage, setServiceMessage] = useState("")
   const submissionLocked = useRef(false)
   const loading = phase !== "idle"
 
@@ -38,6 +37,7 @@ export default function LoginPage() {
     if (submissionLocked.current) return
     submissionLocked.current = true
     setError(null)
+    setServiceMessage("")
     setPhase("request")
     let authenticated = false
 
@@ -51,7 +51,13 @@ export default function LoginPage() {
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) setError("credentials")
         else if (response.status === 400) setError("validation")
-        else setError("service")
+        else {
+          setError("service")
+          if (response.status === 503) {
+            const result = await response.json().catch(() => null)
+            if (typeof result?.error === "string") setServiceMessage(result.error.slice(0, 400))
+          }
+        }
         return
       }
 
@@ -70,10 +76,6 @@ export default function LoginPage() {
         setPhase("idle")
       }
     }
-  }
-
-  function enterDemo() {
-    window.location.assign("/dashboard")
   }
 
   return (
@@ -128,13 +130,12 @@ export default function LoginPage() {
             </div>
 
             <div className={styles.messageSlot}>
-              {error && <p id="login-error" className={styles.error} role="alert">{errorMessages[error]}</p>}
+              {error && <p id="login-error" className={styles.error} role="alert">{error === "service" && serviceMessage ? serviceMessage : errorMessages[error]}</p>}
             </div>
             <Button type="submit" className={styles.submit} disabled={loading}>
               {loading && <LoaderCircle className={styles.spinner} aria-hidden="true" />}
               {phase === "redirect" ? "Redirection en cours…" : loading ? "Connexion en cours…" : "Se connecter"}
             </Button>
-            {demoMode && <Button type="button" variant="outline" onClick={enterDemo}>Ouvrir la démonstration locale</Button>}
           </form>
 
           <nav aria-label="Informations institutionnelles" className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-slate-300">

@@ -66,6 +66,28 @@ export class UserCommands {
     return { status: "CREATED", user: confirmed }
   }
 
+  async touchLastConnection(expected: User, date: string): Promise<User> {
+    if (!this.adapter.updateRow) throw new UsersDataError("SOURCE_UNAVAILABLE", "La mise à jour USERS n'est pas disponible.")
+    const unchanged = (user: User) => user.statut === "ACTIF" && user.sessionVersion === expected.sessionVersion && user.passwordHash === expected.passwordHash && user.doitChangerMotDePasse === expected.doitChangerMotDePasse && (!user.doitChangerMotDePasse || Boolean(user.dateExpirationAccesTemporaire && Date.parse(user.dateExpirationAccesTemporaire) > Date.now()))
+    const current = await this.repository.requireUserById(expected.idUser)
+    if (!unchanged(current)) throw new UsersDataError("CONFLICT", "Le compte a changé pendant la connexion.")
+    try { await this.adapter.updateRow(USERS_SHEET, "id_user", current.idUser, { derniere_connexion: date }) }
+    catch (error) { throw asSourceUnavailable(error, "la dernière connexion") }
+    const confirmed = await this.repository.requireUserById(expected.idUser)
+    if (!unchanged(confirmed) || confirmed.derniereConnexion !== date) throw new UsersDataError("WRITE_NOT_CONFIRMED", "Connexion non confirmée après relecture.")
+    return confirmed
+  }
+
+  async revokeSessions(idUser: string, expectedVersion: number): Promise<void> {
+    if (!this.adapter.updateRow) throw new UsersDataError("SOURCE_UNAVAILABLE", "La mise à jour USERS n'est pas disponible.")
+    const current = await this.repository.requireUserById(idUser)
+    if (current.sessionVersion !== expectedVersion) return
+    try { await this.adapter.updateRow(USERS_SHEET, "id_user", idUser, { session_version: String(expectedVersion + 1) }) }
+    catch (error) { throw asSourceUnavailable(error, "la révocation des sessions") }
+    const confirmed = await this.repository.requireUserById(idUser)
+    if (confirmed.sessionVersion <= expectedVersion) throw new UsersDataError("WRITE_NOT_CONFIRMED", "Révocation non confirmée après relecture.")
+  }
+
   async replaceUser(user: User): Promise<User> {
     const candidate = parseUser(userToSheetRow(user), 2)
     if (!this.adapter.updateRow) throw new UsersDataError("SOURCE_UNAVAILABLE", "La mise à jour USERS n'est pas disponible.")

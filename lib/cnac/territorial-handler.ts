@@ -7,7 +7,6 @@ import { CnacDataError,civilDate } from "./model"
 import { CNAC_GROUPS,CNAC_KEYS } from "./schema"
 import { TERRITORIAL_SHEETS,territorialPatch,territorialEditorRow,type TerritorialKind } from "./territorial-model"
 import { errorResponse,writeAccess } from "./actor-handler"
-import { canWriteLocalTerritorialMutation } from "@/lib/demo-mode"
 import { CNAC_ID_PREFIXES, nextCompactCnacId, recordIds, withCnacCreationQueue } from "./identifiers"
 
 export async function territorialWrite(resource:string,request:Request,method:"POST"|"PUT"|"DELETE") {
@@ -16,7 +15,7 @@ export async function territorialWrite(resource:string,request:Request,method:"P
 }
 
 async function territorialWriteRecord(resource:string,request:Request,method:"POST"|"PUT"|"DELETE") {
-  if(!canWriteLocalTerritorialMutation(resource,method,process.env,request.headers.get("host")||"",request.headers.get("origin")||"")){const denied=await writeAccess();if(denied)return denied}
+  const denied=await writeAccess();if(denied)return denied
   try{
     let body:{id?:unknown;row?:Record<string,unknown>;federationId?:unknown}
     try{body=await request.json()}catch{throw new CnacDataError("INVALID_BODY","Corps JSON invalide.")}

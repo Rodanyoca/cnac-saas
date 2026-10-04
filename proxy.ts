@@ -6,9 +6,9 @@ import { authorizeWithSource } from "@/lib/auth/authorization"
 import { routePolicy } from "@/lib/auth/route-policy"
 import { getAuthorizationsForUser, getUserById } from "@/lib/users/data"
 import { authenticationFailurePath } from "@/lib/auth/failure-navigation"
-import { isCnacDemoMode } from "@/lib/demo-mode"
 
-import { isLocalAuthentication, resolveLocalSession } from "@/lib/auth/local-access"
+import { isSameOriginMutation } from "@/lib/auth/csrf"
+import { getAuthSecret, validateAuthenticationConfiguration } from "@/lib/auth/config"
 
 function isPublicRoute(pathname: string) {
   return pathname === "/login" || pathname === "/confidentialite" || pathname === "/conditions-utilisation" || pathname === "/service-indisponible" || pathname === "/api/auth/login"
@@ -30,15 +30,12 @@ function deny(request: NextRequest, status = 401) {
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+  if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Origine de la requête refusée." }, { status: 403 })
   if (isPublicRoute(pathname)) return NextResponse.next()
-  if (isLocalAuthentication()) {
-    const session = await resolveLocalSession(request.cookies.get(SESSION_COOKIE_NAME)?.value)
-    return session ? NextResponse.next() : deny(request)
-  }
-  if (isCnacDemoMode()) return NextResponse.next()
-  const secret = process.env.AUTH_SECRET
+  let secret: string
+  try { validateAuthenticationConfiguration(); secret = getAuthSecret() } catch { return deny(request, 503) }
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value
-  if (!secret || !token) return deny(request)
+  if (!token) return deny(request)
 
   const resolution = await resolveSession({ token, secret, loadUser: getUserById })
   if (!resolution.ok) return deny(request, resolution.reason === "SOURCE_UNAVAILABLE" ? 503 : 401)

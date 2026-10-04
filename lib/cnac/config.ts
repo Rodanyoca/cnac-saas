@@ -11,7 +11,7 @@ export function cnacWorkbook(sheet: string, spreadsheetId: string, env: Record<s
   if (!group) throw new CnacDataError("OUT_OF_SCOPE", `La feuille ${sheet} n’appartient pas aux deux blocs autorisés.`,403)
   const variable = `GOOGLE_SHEETS_${group}_SPREADSHEET_ID`
   const configured = env[variable]?.trim()
-  if (!configured || configured === "CNAC-DEMO" || configured === "A_COMPLETER") throw new CnacDataError("GOOGLE_CONFIGURATION", `Connexion Google CNAC non configurée. Compléter ${variable} avec l’identifiant CNAC fourni.`,503)
+  if (!configured || configured === "A_COMPLETER") throw new CnacDataError("GOOGLE_CONFIGURATION", `Connexion Google CNAC non configurée. Compléter ${variable} avec l’identifiant CNAC fourni.`,503)
   if (configured !== spreadsheetId) throw new CnacDataError("WORKBOOK_MISMATCH", "Cette feuille ne peut pas être lue dans ce classeur.",403)
   return sheet as CnacSheet
 }
