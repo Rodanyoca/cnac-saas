@@ -137,15 +137,16 @@ export default function LoginPage() {
             {demoMode && <Button type="button" variant="outline" onClick={enterDemo}>Ouvrir la démonstration locale</Button>}
           </form>
 
+          <nav aria-label="Informations institutionnelles" className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-slate-300">
+            <Link href="/confidentialite" className="rounded underline underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300">Politique de confidentialité</Link>
+            <Link href="/conditions-utilisation" className="rounded underline underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300">Conditions d’utilisation</Link>
+          </nav>
+
           <div className={styles.panelMeta}>
             <span>Version 1.0 · Accès sécurisé</span>
             <span>Administration CNAC</span>
           </div>
           <p className={styles.platformLabel}>Plateforme du référentiel sportif national</p>
-          <nav aria-label="Informations institutionnelles" className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-slate-400">
-            <Link href="/confidentialite" className="rounded underline-offset-4 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300">Confidentialité</Link>
-            <Link href="/conditions-utilisation" className="rounded underline-offset-4 hover:text-white hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300">Conditions d’utilisation</Link>
-          </nav>
           <p className={styles.signature} aria-label="Design par DS Concept"><span>Design by</span><strong>DS Concept</strong></p>
         </div>
       </aside>
