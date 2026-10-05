@@ -52,9 +52,9 @@ function canonicalSheetColumn(sheet: CnacSheet, column: string): string {
 }
 export function assertHeaders(sheet: CnacSheet, headers: string[]) {
   const canonicalHeaders = headers.map(column => canonicalSheetColumn(sheet, column))
-  const missing = CNAC_HEADERS[sheet].filter(column => !(sheet === "CATEGORIES_AGE" && optionalAgeCategoryHeaders.has(column)) && !canonicalHeaders.includes(column))
+  const missing = CNAC_HEADERS[sheet].filter(column => !(sheet === "CATEGORIES_AGE" && optionalAgeCategoryHeaders.has(column)) && !(sheet === "CLUBS" && column === "id_categorie_club") && !canonicalHeaders.includes(column))
   if (missing.length) throw new CnacDataError("MAPPING_COLUMNS", `Colonnes absentes dans ${sheet} : ${missing.join(", ")}.`, 502)
-  if (sheet === "ATHLETES" && CNAC_HEADERS.ATHLETES.some((column, index) => canonicalHeaders[index] !== column)) throw new CnacDataError("MAPPING_COLUMNS", "Ordre des colonnes incompatible dans ATHLETES (A:X).", 502)
+  if (sheet === "ATHLETES" && CNAC_HEADERS.ATHLETES.some((column, index) => canonicalHeaders[index] !== column)) throw new CnacDataError("MAPPING_COLUMNS", "Ordre des colonnes incompatible dans ATHLETES (A:S).", 502)
   const populated = canonicalHeaders.filter(Boolean)
   if (new Set(populated).size !== populated.length) throw new CnacDataError("MAPPING_DUPLICATES", `En-têtes dupliqués dans ${sheet}.`, 502)
 }

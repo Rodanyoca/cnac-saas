@@ -30,6 +30,12 @@ export interface Federation {
 export interface Entite { id_entite: string; id_categorie_entite: string; nom_entite: string; sigle_entite: string; adresse_siege: string; telephone: string; email: string; site_web: string; observations: string }
 export interface Sport { id_sport: string; nom_sport: string }
 
+export interface Division {
+  id_division: string
+  nom: string
+  observation: string
+}
+
 export interface TypeStructure {
   id_type_structure: string
   nom_structure: string
@@ -77,10 +83,6 @@ export interface Cercle extends TerritorialMetadata {
 }
 
 export interface Equipe extends TerritorialMetadata {
-  lieu_entrainement?: string
-  adresse_entrainement?: string
-  fuseau_horaire_entrainement?: string
-  planning_entrainement_json?: string
   observations?: string
   nom_categorie_age?: string
   id_equipe_coc: string; id_equipe_federation: string; id_federation: string
@@ -96,5 +98,5 @@ export interface RelationHierarchique {
 export interface FederationData {
   federations: Federation[]; typesStructure: TypeStructure[]
   provinces: Province[]; villes: Ville[]; ligues: Ligue[]
-  categoriesClub: CategorieClub[]; zones: Zone[]; ententes: Entente[]; cercles: Cercle[]; clubs: Club[]; equipes: Equipe[]; hierarchie: RelationHierarchique[]
+  zones: Zone[]; ententes: Entente[]; cercles: Cercle[]; clubs: Club[]; equipes: Equipe[]; hierarchie: RelationHierarchique[]
 }

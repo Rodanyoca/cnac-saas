@@ -16,7 +16,7 @@ function client(write=false) {
   const {email,key} = cnacCredentials()
   return sheets({version:"v4",auth:new googleAuth.JWT({email,key,scopes:[`https://www.googleapis.com/auth/spreadsheets${write?"":".readonly"}`]})})
 }
-const range = (name:string) => `'${name.replaceAll("'","''")}'!${name === "ATHLETES" ? "A:X" : name === "EQUIPES" ? "A:O" : "A:AZ"}`
+const range = (name:string) => `'${name.replaceAll("'","''")}'!${name === "ATHLETES" ? "A:S" : name === "EQUIPES" ? "A:O" : "A:AZ"}`
 export function clearSheetCache() { store.generation++;store.cache.clear();store.pending.clear() }
 
 async function tables(params: Params): Promise<Record<string,SheetTable>> {

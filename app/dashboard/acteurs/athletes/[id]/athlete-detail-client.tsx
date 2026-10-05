@@ -56,10 +56,6 @@ export type AthleteDetail = {
   adresse: string
   statut?: string
   avatarUrl: string | null
-  urlPasseport: string | null
-  numeroPasseport: string
-  dateDelivrancePasseport: string
-  dateExpirationPasseport: string
 }
 type EditForm = {
   id_club_cnac: string
@@ -75,9 +71,6 @@ type EditForm = {
   telephone: string
   email: string
   adresse: string
-  numéro_passeport: string
-  date_de_delivrance_passeport: string
-  "date_expiration passeport": string
   statut: string
 }
 
@@ -140,9 +133,6 @@ export function AthleteDetailClient({
     telephone: athlete.telephone,
     email: athlete.email,
     adresse: athlete.adresse,
-    numéro_passeport: athlete.numeroPasseport,
-    date_de_delivrance_passeport: athlete.dateDelivrancePasseport,
-    "date_expiration passeport": athlete.dateExpirationPasseport,
     statut: athlete.statut === "inactif" ? "INACTIF" : "ACTIF",
   })
   const [form, setForm] = useState<EditForm>(formFromAthlete)
@@ -199,9 +189,6 @@ export function AthleteDetailClient({
         adresse: form.adresse,
         statut: form.statut === "INACTIF" ? "inactif" : "actif",
         avatarUrl: result.row?.avatar_drive_url || current.avatarUrl,
-        numeroPasseport: form.numéro_passeport,
-        dateDelivrancePasseport: form.date_de_delivrance_passeport,
-        dateExpirationPasseport: form["date_expiration passeport"],
       }))
 
       toast.success("Profil de l’athlète modifié.")
@@ -228,7 +215,6 @@ export function AthleteDetailClient({
         avatarInitials={initials(athlete.nomComplet)}
         avatarColorClass="bg-primary/10 text-primary"
         avatarUrl={athlete.avatarUrl}
-        urlPasseport={athlete.urlPasseport}
         actorType="athletes"
         actorId={athlete.id}
         showActorId={false}
@@ -272,11 +258,7 @@ export function AthleteDetailClient({
               <div className="space-y-2"><Label>E-mail</Label><Input type="email" value={form.email} onChange={(e) => update("email", e.target.value)} /></div>
               <div className="space-y-2 sm:col-span-2"><Label>Adresse</Label><Input value={form.adresse} onChange={(e) => update("adresse", e.target.value)} /></div>
             </div></section>
-            <section className="space-y-4"><h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Passeport</h3><div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2"><Label>Numéro</Label><Input value={form.numéro_passeport} onChange={(e) => update("numéro_passeport", e.target.value)} /></div>
-              <div className="space-y-2"><Label>Délivré le</Label><Input type="date" value={form.date_de_delivrance_passeport} onChange={(e) => update("date_de_delivrance_passeport", e.target.value)} /></div>
-              <div className="space-y-2"><Label>Expire le</Label><Input type="date" value={form["date_expiration passeport"]} onChange={(e) => update("date_expiration passeport", e.target.value)} /></div>
-            </div></section>
+
             <section className="space-y-4"><ImageSelection label="Photo de profil" file={avatarFile} onChange={setAvatarFile} existingUrl={athlete.avatarUrl || ""} disabled={saving || pendingSave || !uploads.avatar} /></section>
           </fieldset>
           <SheetFooter>

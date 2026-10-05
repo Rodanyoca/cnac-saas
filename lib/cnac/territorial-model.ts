@@ -1,5 +1,4 @@
 import { sportingFields, validateTeamAttachment } from "./affiliation-model.ts"
-import { trainingPatch } from "./team-training.ts"
 import { CNAC_HEADERS,CNAC_KEYS } from "./schema.ts"
 import { civilDate,CnacDataError,physicalColumn,type SheetRecord } from "./model.ts"
 import { TERRITORIAL_RESOURCE_BINDINGS } from "./territorial-resources.ts"
@@ -12,6 +11,11 @@ export function territorialEditorRow(kind: string, row: SheetRecord): SheetRecor
   if (kind !== "zones" && kind !== "ententes") return row
   const columns: readonly string[] = CNAC_HEADERS[TERRITORIAL_SHEETS[kind]]
   return Object.fromEntries(Object.entries(row).filter(([key]) => columns.includes(physicalColumn(key)) || ["directParentId", "parent_label", "relation_issue", "id_structure_parent_coc", "id_structure_parent_cnac"].includes(key)))
+}
+// Les anciennes affectations ne font plus partie du contrat des Zones et Ententes.
+export function withoutTerritorialDivision(kind: string, row: SheetRecord): SheetRecord {
+  if (kind !== "zones" && kind !== "ententes") return row
+  return Object.fromEntries(Object.entries(row).filter(([key]) => key !== "id_division" && key !== "idDivision"))
 }
 export function parentKind(kind:TerritorialKind,federationId:string,territorial:Record<string,SheetRecord[]>,refs:Record<string,SheetRecord[]>) {
   if(kind==="hierarchie")return undefined
@@ -36,7 +40,7 @@ export function resolveTerritorialRows(territorial:Record<string,SheetRecord[]>)
     if(kind==="hierarchie")continue
     result[sheet]=(territorial[sheet]||[]).map(original=>{
       const binding=TERRITORIAL_RESOURCE_BINDINGS.find(item=>item.key===kind)
-      const row={...territorialEditorRow(kind,original)},parentId=binding?.parentColumn?row[binding.parentColumn]:""
+      const row={...withoutTerritorialDivision(kind,original)},parentId=binding?.parentColumn?row[binding.parentColumn]:""
       const ancestors=new Map<string,SheetRecord>(),visited=new Set([row[CNAC_KEYS[sheet]]]);let next=parentId,issue=""
       while(next){
         if(visited.has(next)){issue="Cycle de parents territoriaux";break}visited.add(next)
@@ -62,6 +66,7 @@ export function territorialPatch(kind:TerritorialKind,input:Record<string,unknow
   const sheet=TERRITORIAL_SHEETS[kind],idColumn=CNAC_KEYS[sheet],columns=CNAC_HEADERS[sheet] as readonly string[],patch:SheetRecord={}
   const aliases:Record<string,string>={niveau:"niveau_hierarchique",id_ligue_federal:"id_ligue_federation",pseudo_ligue:"sigle_ligue",telephone_ligue:"telephone",email_ligue:"email",pseudo_entente:"sigle_entente",telephone_entente:"telephone",email_entente:"email",pseudo_cercle:"sigle_cercle",telephone_cercle:"telephone",email_cercle:"email",pseudo_club:"sigle_club",telephone_club:"telephone",email_club:"email",id_categorie:"id_categorie_club"}
   for(const [key,value] of Object.entries(input)){
+    if (key === "id_division" || key === "idDivision" || key === "id_categorie" || key === "id_categorie_club") continue
     const column=aliases[key]||physicalColumn(key)
     if(column===idColumn){if(!current||String(value).trim()!==current[idColumn])throw new CnacDataError("IMMUTABLE_ID","L’identifiant interne est immuable.");continue}
     if(columns.includes(column))patch[column]=String(value??"").trim()
@@ -88,8 +93,7 @@ export function territorialPatch(kind:TerritorialKind,input:Record<string,unknow
     if(row[federalColumn] && other.some(item=>item.id_federation===row.id_federation&&item[federalColumn]===row[federalColumn]))throw new CnacDataError("DUPLICATE_FEDERAL_ID","Identifiant fédéral déjà utilisé dans cette fédération.",409)
   }
   if(kind === "equipes" && (!current || sportingFields.some(field => field in patch) || "id_club_cnac" in patch)) validateTeamAttachment(row, {...refs,...territorial})
-  if(kind === "equipes") trainingPatch(patch, current)
-  for(const [field,refSheet,key] of [["id_province","PROVINCES","id_province"],["id_ville","VILLES","id_ville"],["id_categorie_club","CATEGORIES_CLUB","id_categorie_club"],["id_sport","SPORTS","id_sport"],["id_discipline","DISCIPLINES","id_discipline"],["id_categorie_age","CATEGORIES_AGE","id_categorie_age"],["id_sexe","SEXES","id_sexe"]]){
+  for(const [field,refSheet,key] of [["id_province","PROVINCES","id_province"],["id_ville","VILLES","id_ville"],["id_sport","SPORTS","id_sport"],["id_discipline","DISCIPLINES","id_discipline"],["id_categorie_age","CATEGORIES_AGE","id_categorie_age"],["id_sexe","SEXES","id_sexe"]]){
     if(!row[field])continue
     if(!current || field in patch){const reference=refs[refSheet]?.find(ref=>ref[key]===row[field]);if(!reference)throw new CnacDataError("REFERENCE_INVALID",`Référence ${field} introuvable.`);if(reference.id_federation&&reference.id_federation!==row.id_federation)throw new CnacDataError("REFERENCE_OWNER",`La référence ${field} appartient à une autre fédération.`)}
   }

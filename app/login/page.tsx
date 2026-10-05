@@ -1,6 +1,6 @@
 "use client"
 
-import { apiFetch } from "@/lib/api/client"
+import { requestLogin } from "@/lib/auth/login-request"
 
 import Image from "next/image"
 import Link from "next/link"
@@ -42,11 +42,7 @@ export default function LoginPage() {
     let authenticated = false
 
     try {
-      const response = await apiFetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      })
+      const response = await requestLogin(email, password)
 
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) setError("credentials")

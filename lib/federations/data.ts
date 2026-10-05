@@ -2,7 +2,7 @@ import { getSheetsRows as isolatedRows } from "@/lib/google/sheets"
 import { getSheetsRows } from "@/lib/cnac/sheets"
 import { resolveTerritorialRows } from "@/lib/cnac/territorial-model"
 import { getReferentialSpreadsheetId, getTerritorialSpreadsheetId } from "./config"
-import { mapCategorieClubRow, mapCercleRow, mapClubRow, mapEntenteRow, mapEntiteRow, mapEquipeRow, mapFederationRow, mapHierarchieRow, mapLigueRow, mapProvinceRow, mapSportRow, mapTypeStructureRow, mapVilleRow, mapZoneRow } from "./mappers"
+import { mapCercleRow, mapClubRow, mapEntenteRow, mapEntiteRow, mapEquipeRow, mapFederationRow, mapHierarchieRow, mapLigueRow, mapProvinceRow, mapSportRow, mapTypeStructureRow, mapVilleRow, mapZoneRow } from "./mappers"
 import { REFERENTIAL_SHEETS, TERRITORIAL_RESOURCES } from "./schema"
 import type { FederationData } from "./types"
 
@@ -54,7 +54,6 @@ export async function loadFederationData(options: { connected?: boolean } = {}):
     typesStructure,
     provinces: referential.PROVINCES.map(mapProvinceRow).filter((item) => item.id_province),
     villes: referential.VILLES.map(mapVilleRow).filter((item) => item.id_ville),
-    categoriesClub: referential.CATEGORIES_CLUB.map(mapCategorieClubRow).filter((item) => item.id_categorie),
     zones: territorial.ZONES.map(mapZoneRow).filter((item) => item.id_zone_coc),
     ligues: territorial.LIGUES.map(mapLigueRow).filter((item) => item.id_ligue_coc),
     ententes: territorial.ENTENTES.map(mapEntenteRow).filter((item) => item.id_entente_coc),

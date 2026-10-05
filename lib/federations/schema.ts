@@ -5,7 +5,6 @@ export const REFERENTIAL_SHEETS = {
   provinces: "PROVINCES",
   villes: "VILLES",
   typesStructure: "TYPES_STRUCTURE",
-  categoriesClub: "CATEGORIES_CLUB",
   categoriesEntites: "CATEGORIES_ENTITES",
   categoriesAge: "CATEGORIES_AGE",
 } as const
@@ -30,7 +29,7 @@ export const SHEET_COLUMNS = {
   ENTENTES: ["id_entente_coc", "id_entente_federation", "id_federation", "id_structure_parent_coc", "id_ville", "nom_entente", "sigle_entente", "date_creation", "date_reconnaissance", "telephone", "email", "statut", "observations"],
   CERCLES: ["id_cercle_coc", "id_cercle_federation", "id_federation", "id_structure_parent_coc", "id_ville", "nom_cercle", "sigle_cercle", "date_creation", "date_reconnaissance", "telephone", "email", "statut", "observations"],
   CLUBS: ["id_club_coc", "id_club_federation", "id_federation", "id_structure_parent_coc", "id_categorie_club", "id_province", "id_ville", "nom_club", "sigle_club", "date_creation", "date_affiliation", "telephone", "email", "statut", "observations"],
-  EQUIPES: ["id_equipe_coc", "id_equipe_federation", "id_federation", "id_club_coc", "id_sport", "id_discipline", "id_categorie_age", "id_sexe", "nom_equipe", "statut", "observations", "lieu_entrainement", "adresse_entrainement", "fuseau_horaire_entrainement", "planning_entrainement_json"],
+  EQUIPES: ["id_equipe_coc", "id_equipe_federation", "id_federation", "id_club_coc", "id_sport", "id_discipline", "id_categorie_age", "id_sexe", "nom_equipe", "statut", "observations"],
 } as const
 
 export function selectSheetColumns(sheet: keyof typeof SHEET_COLUMNS, row: Record<string, string>) {

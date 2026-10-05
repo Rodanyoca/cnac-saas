@@ -36,7 +36,7 @@ function fixture() {
     const match = range.match(/^'([^']+)'!([A-Z]+):([A-Z]+)$/)!
     const matrix = matrices.get(match[1])!
     if (match[2] === match[3]) { const index = [...match[2]].reduce((n, letter) => n * 26 + letter.charCodeAt(0) - 64, 0) - 1; return { values: matrix.map(row => [row[index] || ""]) } }
-    if (match[1] === "ATHLETES") assert.equal(range, "'ATHLETES'!A:X")
+    if (match[1] === "ATHLETES") assert.equal(range, "'ATHLETES'!A:S")
     return { values: structuredClone(matrix) }
   }) } })
   const transport = { spreadsheets: {
@@ -49,11 +49,11 @@ function fixture() {
       for (const request of requestBody.requests) {
         if (request.appendCells) {
           const name = names[request.appendCells.sheetId], rows = request.appendCells.rows.map(row => row.values.map(value))
-          if (name === "ATHLETES") assert.equal(rows[0].length, 24)
+          if (name === "ATHLETES") assert.equal(rows[0].length, 19)
           next.get(name)!.push(...rows)
         } else {
           const requestData = request.updateCells!, start = requestData.start, name = names[start.sheetId]
-          if (name === "ATHLETES") assert.ok(start.columnIndex < 24)
+          if (name === "ATHLETES") assert.ok(start.columnIndex < 19)
           next.get(name)![start.rowIndex][start.columnIndex] = value(requestData.rows[0].values[0])
         }
       }

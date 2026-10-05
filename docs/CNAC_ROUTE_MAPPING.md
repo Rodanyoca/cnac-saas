@@ -1,5 +1,11 @@
 # Cartographie COC → CNAC
 
+## Chargement territorial — 5 octobre 2026
+
+La fiche Fédération et les écritures territoriales ne chargent plus DIVISIONS ni CATEGORIES_CLUB. TYPES_STRUCTURE ne requiert plus division_applicable. Le formulaire Club retire sa catégorie ; les anciens champs de catégorie de club sont ignorés à l'enregistrement et id_categorie_club est facultatif à la lecture. Les équipes conservent la catégorie d'âge. Aucun classeur réel ni en-tête Google n'a été modifié.
+
+Validation : huit tests d'intégration territoriale et trois tests unitaires ciblés réussissent. Lint sans erreur (deux avertissements existants). Turbopack compile ; le build complet reste bloqué par trois erreurs TypeScript des tests d'entraînement d'équipe, qui référencent des champs absents du type Equipe.
+
 ## EQUIPES — correction du contrat Sheets, 4 octobre 2026
 
 L'erreur MAPPING_COLUMNS au chargement des affiliations Athlète était causée par CNAC_HEADERS.EQUIPES, qui exigeait encore trois champs supprimés : id_type_structure_sportive, id_structure_sportive_cnac et id_division. Le contrat Équipe comporte désormais les onze colonnes existantes, de id_equipe_cnac à observations. Les anciennes colonnes sont ignorées à la lecture et refusées à l'écriture, même si un ancien classeur les contient encore. Les créations restent bornées à A:K.
@@ -295,3 +301,42 @@ Fichiers de ce lot :
 - Tests : `tests/unit/cnac-team-training.test.ts`, `cnac-affiliation.test.ts`, `tests/integration/cnac-territorial-divisions.test.ts` ; documentation dans ce fichier.
 
 Vérifications : build de production réussi, 53/53 tests d’intégration, 374/378 tests unitaires (les quatre échecs préexistants concernent les compétitions et équipes nationales), TypeScript validé, lint sans erreur avec deux avertissements préexistants. Playwright vérifie les composants réels à 1440 et 390 px : préchargement, réinitialisation, ajout, modification, suppression, chevauchement, préservation/correction explicite d’un planning illisible et changement d’équipe active, sans débordement ni erreur JavaScript. Les sauvegardes/rechargements sont testés avec un transport Sheets en mémoire ; aucune donnée de test écrite dans les classeurs réels, aucune modification du COC.
+### 2026-10-05 — Bandeau, navigation et typographie : référence FEBACO
+
+Pour cette passe, la consigne explicite de l’utilisateur remplace la référence visuelle COC par FEBACO. Les dépôts FEBACO et COC ont été consultés en lecture seule. Les routes, permissions, rubriques propres au CNAC, enfants dynamiques, authentification et données métier sont conservés.
+
+| Élément | FEBACO inspecté | CNAC avant | Correction CNAC |
+| --- | --- | --- | --- |
+| Bandeau | Minimum 64 px ; 73 px mesurés avec sous-titre ; padding 12 × 24 px ; fond à 90 %, flou et ombre `0 10px 30px rgba(2,12,23,.18)` | 80 px avec sous-titre | Valeurs et composition de référence reprises ; titre 20 px / 700, sous-titre 14 px |
+| Accent doré | Bordure de 2 px à gauche du titre, `#f6c515` ; aucune bordure droite dorée dans le code ou le rendu | Accent et composition différents | Accent gauche reproduit ; bordure droite de 2 px ajoutée conformément à la demande, distincte de la référence inspectée |
+| Couleur de navigation | Texte inactif `#9db2c6`, opaque ; survol `#f7fafc` sur `#0d2d49` | Texte blanc hérité : `--sidebar-muted` existait, mais sa liaison Tailwind manquait | Ajout de `--color-sidebar-muted`, mêmes couleurs et états de survol ; focus clavier visible |
+| Liens et icônes | Liens 40 px, texte 14 px / 500, icônes 20 px / trait 2, intervalle 12 px ; actif jaune sans ombre ajoutée | Sous-liens 36 px, icônes 16 px, actif plus gras avec ombre | Dimensions, épaisseurs et états harmonisés ; Flag pour Équipe nationale, Activity pour Activités ; Landmark conservé pour Fédérations |
+| Sections | Acteurs, Competition, Equipe nationale, Administration | Regroupements et styles différents | Présentation regroupée avec ces titres ; toutes les rubriques CNAC et leurs enfants sont conservés, aucun module FEBACO ajouté |
+| Police | Geist et Geist Mono réellement rendues ; chargement `next/font/google` | Inter déclarée mais non chargée ; Segoe UI effectivement rendue sous Windows, comme COC | Fontes et métriques exactes de la référence auto-hébergées ; variables globales harmonisées ; deux surcharges Inter du login supprimées |
+| Repli et mobile | Largeurs 256 / 64 px ; à 390 px, sidebar permanente et titre masqué ; marge du contenu non réduite au repli | Navigation mobile et repli insuffisants | Même style et mêmes largeurs ; contenu adapté à 64 px au repli ; tiroir mobile avec fond, focus capturé, fermeture Escape et retour du focus, bandeau sans débordement |
+
+Sources : `FEBACO/components/dashboard/header.tsx`, `sidebar.tsx`, `app/layout.tsx`, `app/globals.css` et fontes générées par son build ; `CNAC/app/layout.tsx`, `app/globals.css`, `app/login/login.module.css`, composants Header/Sidebar ; mêmes fichiers de police du COC. Tailwind 4 utilise les variables `@theme inline`, sans configuration Tailwind séparée. CNAC et COC avaient la même pile de police : aucune différence de fonte effectivement rendue entre eux dans le navigateur inspecté. Leurs différences de navigation provenaient notamment des couleurs et graisses. Les fontes distribuées incluent la licence SIL OFL officielle du projet Geist : https://github.com/vercel/geist-font.
+
+Fichiers modifiés ou ajoutés : `app/dashboard/layout.tsx`, `app/globals.css`, `app/fonts.css`, `app/login/login.module.css`, `components/dashboard/header.tsx`, `sidebar.tsx`, `navigation-provider.tsx`, `lib/navigation/dashboard-presentation.ts`, `tests/unit/dashboard-navigation.test.ts`, ce rapport et `public/fonts/geist/` (11 fichiers WOFF2 et `OFL.txt`). Aucun changement de dépendance, variable d’environnement, route métier ou classeur.
+
+Vérifications : build de production et TypeScript réussis ; 53/53 tests d’intégration ; 18/18 tests unitaires ciblant navigation, droits et redirections ; lint sans erreur, avec deux avertissements préexistants. Les rendus Chromium des composants réels ont été comparés à 1440 et 390 px, avec CSS compilé depuis chaque dépôt et fontes réellement utilisées contrôlées par le navigateur. Les assertions comparent dimensions, couleurs, fontes, espacements et ombres ; elles vérifient aussi la bordure droite dorée CNAC, le survol, le focus, le repli, les sections, le menu mobile et une erreur de déconnexion sans faux succès.
+
+Captures locales de vérification, non versionnées : `.cache/visual-shell/desktop-comparison.png` (FEBACO à gauche, CNAC à droite), `cnac-after-390.png`, `cnac-open-390.png`, `cnac-collapsed-1440.png`, ainsi que les mesures avant/après. Les captures utilisent les composants réels dans un harnais isolé, et non des pages connectées aux classeurs ; cette passe ne revendique pas une validation métier en production. Aucun compte ni aucune donnée réelle de test n’a été créé.
+### 2026-10-05 — Connexion réussie côté serveur mais annulée côté interface
+
+Le client générique annulait les requêtes après 12 secondes. Une authentification qui terminait ses lectures et écritures Sheets puis répondait HTTP 200 à cette limite pouvait donc afficher une indisponibilité côté navigateur. Le formulaire utilise désormais `lib/auth/login-request.ts`, avec un délai spécifique borné à 60 secondes ; aucun nouvel essai automatique, aucune modification des contrôles de session, d’origine, des mots de passe ou de confirmation des écritures. Le délai des autres appels API reste inchangé.
+
+Le test de non-régression simule une réponse réussie après 13 secondes avec des horloges contrôlées : échec constaté avant la correction, succès après. Un second test vérifie le délai maximal et l’absence de répétition. Les 16 tests ciblés connexion, session, navigation et résilience réussissent ; lint sans erreur avec les deux avertissements préexistants. Aucun identifiant réel utilisé ni aucune donnée de test écrite dans Sheets.
+### 2026-10-05 — Suppression du passeport des athlètes
+
+La suppression des cinq colonnes passeport dans ATHLETES remplace le précédent contrat A:X. Le contrat est désormais de 19 colonnes, A:S, avec `id_club_cnac` en R et `id_equipe_cnac` en S. Les champs `numero_passeport`, `date_de_delivrance_passeport`, `date_expiration_passeport`, `passeport_drive_id` et `passeport_drive_url` ne sont plus requis, lus ni écrits pour les athlètes. Les formulaires de création/modification, leur état initial, les payloads, le type de détail et le mapping de fiche ne contiennent plus de passeport. La validation de dates de passeport reste réservée aux autres catégories d’acteurs qui possèdent encore ces colonnes.
+
+Identité, coordonnées, nationalité, observations, avatar privé et affiliation Club/Équipe sont conservés. Les tests d’intégration utilisent un transport Sheets en mémoire et vérifient les nouvelles plages, les positions physiques et la conservation des données. Vérifications : 65/65 tests ciblés existants et 2/2 nouveaux tests de non-régression, build de production/TypeScript réussis, lint sans erreur avec les deux avertissements préexistants. Aucune modification des en-têtes et aucune écriture dans les classeurs réels.
+
+Fichiers : `lib/cnac/schema.ts`, `model.ts`, `sheets.ts`, `actors-model.ts` ; `app/dashboard/acteurs/athletes/athletes-client.tsx`, `[id]/page.tsx`, `[id]/athlete-detail-client.tsx` ; tests `athlete-without-passport.test.ts`, `cnac-affiliation.test.ts`, `cnac-connection.test.ts`, `cnac-media.test.ts`, `cnac-write-fixtures.test.ts`, `cnac-territorial-divisions.test.ts` et ce rapport.
+### 2026-10-05 — Suppression du bandeau technique des acteurs
+
+La section affichant « Sources CNAC », les dossiers d’upload et les habilitations est supprimée du layout commun des acteurs (`app/dashboard/acteurs/layout.tsx`). Le fournisseur des références Sexe et des capacités médias reste en place pour les formulaires.
+### 2026-10-05 — Import du formulaire territorial
+
+Le client des paramètres de fédération utilise `territorialEditorRow`, fonction réellement exportée, pour initialiser, ouvrir et enregistrer les éditeurs. L’ancien nom `withoutTerritorialDivision` n’est plus référencé dans le code applicatif. Le formulaire Équipe retrouve son bloc dédié avec une seule occurrence des champs Club, Nom et Statut. Les 20 tests d’intégration territoriale réussissent ; lint sans erreur avec les deux avertissements préexistants.

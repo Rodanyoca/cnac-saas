@@ -70,13 +70,13 @@ test("athlete affiliation filters teams, changes club/federation and validates o
  assert.doesNotThrow(()=>actorPatch("athletes",{nom_complet:"Bob",id_federation:"F2",id_sexe:"01",id_club_cnac:"C3",id_equipe_cnac:""},undefined,refs,[]))
  assert.equal(sportUsesTeams({...refs,SPORTS:[]},"F1"),undefined)
 })
-test("physical mappings reach EQUIPES L:O and ATHLETES W/X, preserving other cells",()=>{
+test("physical mappings reach EQUIPES L:O and ATHLETES R/S, preserving other cells",()=>{
  const headers=[...CNAC_HEADERS.ATHLETES]
  const table=parseTable("ATHLETES",[headers,headers.map(key=>athlete[key as keyof typeof athlete]||"")])
  const cells=updateCells(table,"ATHLETES","id_athlete_cnac","A1",[{column:"id_club_cnac",value:"C2"},{column:"id_equipe_cnac",value:""}])
- assert.deepEqual(cells.map(cell=>cell.columnIndex),[22,23]);assert.equal(cells.length,2)
+ assert.deepEqual(cells.map(cell=>cell.columnIndex),[17,18]);assert.equal(cells.length,2)
  const values=appendValues({...table,rows:[]},"ATHLETES",athlete)
- assert.equal(values[22],"C1");assert.equal(values[23],"T1")
+ assert.equal(values[17],"C1");assert.equal(values[18],"T1")
  const team={...refs.EQUIPES[0],nom_equipe:"Seniors"}
  const teamTable=parseTable("EQUIPES",[[...CNAC_HEADERS.EQUIPES]])
  const teamValues=appendValues(teamTable,"EQUIPES",team)
@@ -102,17 +102,17 @@ test("team Sheets writers reject removed fields even with legacy physical header
 })
 
 
-test("athlete Sheets contract is A:X and rejects retired fields including stale Y headers",()=>{
- assert.equal(CNAC_HEADERS.ATHLETES.length,24)
- assert.equal(CNAC_HEADERS.ATHLETES[22],"id_club_cnac")
- assert.equal(CNAC_HEADERS.ATHLETES[23],"id_equipe_cnac")
+test("athlete Sheets contract is A:S and rejects retired fields including stale extra headers",()=>{
+ assert.equal(CNAC_HEADERS.ATHLETES.length,19)
+ assert.equal(CNAC_HEADERS.ATHLETES[17],"id_club_cnac")
+ assert.equal(CNAC_HEADERS.ATHLETES[18],"id_equipe_cnac")
  const headers=[...CNAC_HEADERS.ATHLETES,"id_division"]
  const table=parseTable("ATHLETES",[headers,headers.map(column=>column==="id_division"?"D1":athlete[column as keyof typeof athlete]||"")])
  assert.equal("id_division" in table.rows[0],false)
- assert.equal(appendValues({...table,rows:[]},"ATHLETES",athlete).length,24)
+ assert.equal(appendValues({...table,rows:[]},"ATHLETES",athlete).length,19)
  assert.throws(()=>updateCells(table,"ATHLETES","id_athlete_cnac","A1",[{column:"id_division",value:"D2"}]),/Colonne absente/)
  assert.throws(()=>appendValues({...table,rows:[]},"ATHLETES",{...athlete,id_division:"D1"}),/Colonne absente/)
- assert.throws(()=>parseTable("ATHLETES",[[...CNAC_HEADERS.ATHLETES.slice(0,22),"id_equipe_cnac","id_club_cnac"]]),/Ordre des colonnes/)
+ assert.throws(()=>parseTable("ATHLETES",[[...CNAC_HEADERS.ATHLETES.slice(0,17),"id_equipe_cnac","id_club_cnac"]]),/Ordre des colonnes/)
 })
 test("active affiliation preserves club, team and territorial summaries without divisions",()=>{
  assert.equal(activeAffiliationLabel(athlete,refs),"V Club \u2013 Seniors")

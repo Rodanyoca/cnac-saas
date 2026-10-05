@@ -32,7 +32,7 @@ test("athlete media columns are preserved during reading and identity updates",(
  const headers=[...CNAC_HEADERS.ATHLETES]
  const table=parseTable("ATHLETES",[headers,headers.map(key=>key==="id_athlete_cnac"?"A":key.endsWith("_url")?"https://fixture.invalid/file":"")])
  assert.equal(table.rows[0].avatar_drive_url,"https://fixture.invalid/file")
- assert.equal(table.rows[0].passeport_drive_url,"https://fixture.invalid/file")
+ assert.equal("passeport_drive_url" in table.rows[0],false)
  const patch=actorPatch("athletes",{nom_complet:"Changed",avatar_drive_url:"ignored"},{...table.rows[0],id_federation:"FED001",id_sexe:"01"},refs,table.rows)
  assert.deepEqual(patch,{nom_complet:"Changed"})
 })
@@ -121,7 +121,7 @@ test("Missing and cross-federation parents are diagnostic values, not hidden rec
 test("Territorial form validates actual parent and owner and retains partial patch",()=>{
   const current=territorial.CLUBS[0]
   assert.deepEqual(territorialPatch("clubs",{nom_club:"Renamed"},current,territorial,refs),{nom_club:"Renamed"})
-  assert.throws(()=>territorialPatch("clubs",{id_categorie:"CAT1"},current,territorial,refs),/autre fédération/)
+  assert.deepEqual(territorialPatch("clubs",{id_categorie:"CAT1",id_categorie_club:"CAT1"},current,territorial,refs),{})
   assert.throws(()=>territorialPatch("clubs",{id_cercle_coc:"MISSING"},current,territorial,refs),/Parent introuvable/)
 })
 
@@ -160,4 +160,11 @@ test("CNAC age categories accept actual global headers and preserve accented phy
  const scopedRow: Record<string,string> = {id_categorie_age:"AGE003",nom_categorie_age:"U18",id_federation:"FED001",id_sport:"SP01",id_discipline:"DIS01"}
  const scoped=parseTable("CATEGORIES_AGE",[[...CNAC_HEADERS.CATEGORIES_AGE],CNAC_HEADERS.CATEGORIES_AGE.map(key=>(scopedRow[key]||""))])
  assert.equal(scoped.rows[0].id_federation,"FED001")
+})
+
+test("clubs load without the removed club category column",()=>{
+ const headers=CNAC_HEADERS.CLUBS.filter(key=>key!=="id_categorie_club")
+ const table=parseTable("CLUBS",[headers,headers.map(key=>key==="id_club_cnac"?"C1":"")])
+ assert.equal(table.rows[0].id_club_cnac,"C1")
+ assert.equal("id_categorie_club" in table.rows[0],false)
 })

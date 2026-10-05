@@ -50,10 +50,6 @@ async function AthleteDetailPage({ params }: { params: Promise<{ id: string }> }
     adresse: row.adresse || "",
     statut: row.statut?.toLowerCase() || undefined,
     avatarUrl: cnacMediaUrl("avatar", row.id_athlete_cnac || row.id_athlete_coc, row.avatar_drive_id || "") || null,
-    urlPasseport: row.passeport_drive_url || null,
-    numeroPasseport: row.numero_passeport || "",
-    dateDelivrancePasseport: row.date_de_delivrance_passeport || "",
-    dateExpirationPasseport: row["date_expiration passeport"] || "",
   }
 
   const federations: FederationOption[] = federationRows.map(({ id, sigle, nom }) => ({

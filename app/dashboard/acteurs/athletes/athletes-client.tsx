@@ -80,9 +80,6 @@ type AthleteForm = {
   telephone: string
   email: string
   adresse: string
-  numéro_passeport: string
-  date_de_delivrance_passeport: string
-  "date_expiration passeport": string
 }
 
 const emptyForm: AthleteForm = {
@@ -100,9 +97,6 @@ const emptyForm: AthleteForm = {
   telephone: "",
   email: "",
   adresse: "",
-  numéro_passeport: "",
-  date_de_delivrance_passeport: "",
-  "date_expiration passeport": "",
 }
 
 function initials(name: string) {
@@ -393,23 +387,7 @@ export function AthletesClient({
               </div>
             </section>
 
-            <section className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Passeport</h3>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="numero_passeport">Numéro</Label>
-                  <Input id="numero_passeport" value={form.numéro_passeport} onChange={(event) => update("numéro_passeport", event.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date_delivrance">Délivré le</Label>
-                  <Input id="date_delivrance" type="date" value={form.date_de_delivrance_passeport} onChange={(event) => update("date_de_delivrance_passeport", event.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date_expiration">Expire le</Label>
-                  <Input id="date_expiration" type="date" value={form["date_expiration passeport"]} onChange={(event) => update("date_expiration passeport", event.target.value)} />
-                </div>
-              </div>
-            </section>
+
 
             <section className="space-y-4">
               <div>

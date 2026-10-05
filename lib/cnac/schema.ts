@@ -201,11 +201,7 @@ export const CNAC_HEADERS = {
     "id_sexe",
     "nom_equipe",
     "statut",
-    "observations",
-    "lieu_entrainement",
-    "adresse_entrainement",
-    "fuseau_horaire_entrainement",
-    "planning_entrainement_json"
+    "observations"
   ],
   "PERSONNES_CONTACT_ENTITES": [
     "id_contact_entite",
@@ -235,13 +231,10 @@ export const CNAC_HEADERS = {
     "date_de_delivrance_passeport",
     "date_expiration_passeport",
     "statut",
-    "avatar_drive_id",
-    "avatar_drive_url",
-    "passeport_drive_id",
-    "passeport_drive_url",
     "observations",
     "id_club_cnac",
-    "id_equipe_cnac"
+    "id_equipe_cnac",
+    "id_division"
   ],
   "COACHS": [
     "id_coach_cnac",
@@ -386,7 +379,6 @@ export const CNAC_GROUPS = {
     "VILLES",
     "CATEGORIES_ENTITES",
     "TYPES_STRUCTURE",
-    "CATEGORIES_CLUB",
     "SEXES",
     "TYPES_ACTEURS",
     "CATEGORIES_AGE",

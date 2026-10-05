@@ -7,7 +7,7 @@ import { actorPatch } from "../../lib/cnac/actors-model.ts"
 // Fixture locale, aucune API Google : résultat final comparé aux données de départ.
 test("Actor edit targets its current row after insertion and preserves every unrelated cell",()=>{
  const headers=[...CNAC_HEADERS.ATHLETES]
- const make=(id:string,name:string)=>headers.map(key=>({id_athlete_cnac:id,nom_complet:name,id_federation:"FED001",id_sexe:"01",avatar_drive_id:"COPIED_ORIGINAL",passeport_drive_url:"https://example.invalid/passport",nationalite:"RDC",observations:"KEEP"} as Record<string,string>)[key]||"")
+ const make=(id:string,name:string)=>headers.map(key=>({id_athlete_cnac:id,nom_complet:name,id_federation:"FED001",id_sexe:"01",avatar_drive_id:"COPIED_ORIGINAL",nationalite:"RDC",observations:"KEEP"} as Record<string,string>)[key]||"")
  const matrix:(string|number|boolean)[][]=[headers,make("ATH.NEW","Inserted"),[],make("ATH.000001","Original"),make("ATH.000002","Other")]
  const before=structuredClone(matrix)
  const table=parseTable("ATHLETES",matrix),current=table.rows.find(row=>row.id_athlete_cnac==="ATH.000001")!
@@ -18,7 +18,7 @@ test("Actor edit targets its current row after insertion and preserves every unr
  assert.deepEqual(matrix[1],before[1]);assert.deepEqual(matrix[4],before[4])
  const after=parseTable("ATHLETES",matrix).rows.find(row=>row.id_athlete_cnac==="ATH.000001")!
  assert.equal(after.telephone,"+243000001");assert.equal(after.date_de_naissance,"2000-06-05")
- for(const key of ["avatar_drive_id","passeport_drive_url","nationalite","observations","id_federation","id_athlete_cnac"])assert.equal(after[key],current[key])
+ for(const key of ["avatar_drive_id","nationalite","observations","id_federation","id_athlete_cnac"])assert.equal(after[key],current[key])
 })
 
 test("Typed contact edit stores boolean TRUE and plural observations without overwriting actor identity",()=>{

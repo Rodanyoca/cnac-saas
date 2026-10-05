@@ -57,10 +57,10 @@ test("team and athlete save/reload through real handlers and Sheets transport; f
   const athleteCreated=await actor.actorWrite("athletes",request({row:{nom_complet:"Athlete test",id_federation:"FED1",id_sexe:"01",id_club_cnac:"C1",id_equipe_cnac:team.id_equipe_cnac,observations:"GARDER"}}),"POST")
   assert.equal(athleteCreated.status,200)
   const athlete=(await athleteCreated.json()).row
-  assert.deepEqual(f.appends[1].values[0].slice(22,24),["C1",team.id_equipe_cnac])
+  assert.deepEqual(f.appends[1].values[0].slice(17,19),["C1",team.id_equipe_cnac])
   const updated=await actor.actorWrite("athletes",request({id:athlete.id_athlete_cnac,row:{id_club_cnac:"C2",id_equipe_cnac:""}}),"PUT")
   assert.equal(updated.status,200)
-  assert.deepEqual(f.updates.slice(-3).map(cell=>cell.range),["'ATHLETES'!W2","'ATHLETES'!X2"])
+  assert.deepEqual(f.updates.slice(-3).map(cell=>cell.range),["'ATHLETES'!R2","'ATHLETES'!S2"])
   const reload=parseTable("ATHLETES",f.matrices.get("ATHLETES")!).rows[0]
   assert.equal(reload.id_club_cnac,"C2");assert.equal(reload.id_equipe_cnac,"");assert.equal(reload.observations,"GARDER")
   const updatedTeam=await f.territorialWrite("equipes",request({id:team.id_equipe_cnac,row:{id_categorie_age:"AGE1",id_division:"D2"}}),"PUT")
@@ -72,7 +72,7 @@ test("team and athlete save/reload through real handlers and Sheets transport; f
   const invalid=await actor.actorWrite("athletes",request({id:athlete.id_athlete_cnac,row:{id_equipe_cnac:team.id_equipe_cnac}}),"PUT")
   assert.equal(invalid.status,400);assert.equal((await invalid.json()).ok,undefined)
   assert.deepEqual(f.matrices.get("ATHLETES"),affiliationBefore)
-  f.matrices.get("ATHLETES")![0][22]="missing_club_header"
+  f.matrices.get("ATHLETES")![0][17]="missing_club_header"
   const backendFailure=await actor.actorWrite("athletes",request({id:athlete.id_athlete_cnac,row:{nom_complet:"Changed"}}),"PUT")
   assert.equal(backendFailure.status,502);assert.equal((await backendFailure.json()).ok,undefined)
   assert.ok(f.revalidations.some(([path,type])=>path==="/dashboard/acteurs/athletes" && type==="layout"))
@@ -309,7 +309,7 @@ for (const [kind, sheet, existingId, name, width, range] of [
     assert.equal(f.updates[0].range, `'${sheet}'!${kind === "zones" ? "D" : "F"}2`)
     const after = f.matrices.get(sheet)![1]
     for (let index = 0; index < before.length; index++) if (index !== (CNAC_HEADERS[sheet] as readonly string[]).indexOf(name)) assert.equal(after[index], before[index])
-    assert.ok(f.reads.flat().every(value => !value.includes("DIVISIONS")))
+    assert.ok(f.reads.flat().every(value => !value.includes("DIVISIONS") && !value.includes("CATEGORIES_CLUB")))
     assert.equal(f.accessChecks(), 2)
     assert.deepEqual(f.revalidations, [["/dashboard/federations/FED1", "layout"], ["/dashboard/federations/FED1", "layout"]])
     f.deny()
@@ -324,10 +324,10 @@ test("all federation screens and central referential load without DIVISIONS", as
   assert.equal("divisions" in data, false)
   assert.equal(data.zones.length, 1)
   assert.equal(data.ententes[0].directParentId, "L1")
-  assert.ok(f.reads.flat().every(value => !value.includes("DIVISIONS")))
+  assert.ok(f.reads.flat().every(value => !value.includes("DIVISIONS") && !value.includes("CATEGORIES_CLUB")))
   const central = await f.loadFederationData({ connected: true })
   assert.equal("divisions" in central, false)
-  assert.ok(f.reads.flat().every(value => !value.includes("DIVISIONS")))
+  assert.ok(f.reads.flat().every(value => !value.includes("DIVISIONS") && !value.includes("CATEGORIES_CLUB")))
 })
 
 test("stale editor state and mappings discard division without mutating references or parent", () => {
@@ -420,7 +420,7 @@ test("Zone and Entente detail pages render without Division and keep the direct 
       assert.match(html, /\+24300001/)
     }
   }
-  assert.ok(f.reads.flat().every(value => !value.includes("DIVISIONS")))
+  assert.ok(f.reads.flat().every(value => !value.includes("DIVISIONS") && !value.includes("CATEGORIES_CLUB")))
 })
 
 test("authorized federation edits reach Sheets for Zone, Entente and identification", async () => {
@@ -479,7 +479,7 @@ test("federation settings load actual CNAC age-category sheet without ownership 
 })
 
 
-test("athlete creation, identity edit, affiliation edit and reload use A:X without DIVISIONS",async()=>{
+test("athlete creation, identity edit, affiliation edit and reload use A:S without DIVISIONS",async()=>{
  const f=fixture({}, {NODE_ENV:"test"},true)
  const add=(sheet:CnacSheet,row:SheetRecord)=>f.matrices.get(sheet)!.push(CNAC_HEADERS[sheet].map(column=>row[column]||""))
  add("CLUBS",{id_club_cnac:"C1",id_federation:"FED1",id_structure_parent_cnac:"E1",nom_club:"Club X"})
@@ -492,10 +492,10 @@ test("athlete creation, identity edit, affiliation edit and reload use A:X witho
  const created=await actorWrite("athletes",request({row:identity}),"POST")
  assert.equal(created.status,200)
  const athlete=(await created.json()).row
- assert.equal(f.appends.at(-1)!.range,"'ATHLETES'!A:X")
- assert.equal(f.appends.at(-1)!.values[0].length,24)
- assert.equal(f.appends.at(-1)!.values[0][22],"C1")
- assert.equal(f.appends.at(-1)!.values[0][23],"T1")
+ assert.equal(f.appends.at(-1)!.range,"'ATHLETES'!A:S")
+ assert.equal(f.appends.at(-1)!.values[0].length,19)
+ assert.equal(f.appends.at(-1)!.values[0][17],"C1")
+ assert.equal(f.appends.at(-1)!.values[0][18],"T1")
  const edited=await actorWrite("athletes",request({id:athlete.id_athlete_cnac,row:{nom_complet:"Updated Athlete"}}),"PUT")
  assert.equal(edited.status,200)
  const moved=await actorWrite("athletes",request({id:athlete.id_athlete_cnac,row:{id_club_cnac:"C2",id_equipe_cnac:"T2"}}),"PUT")
@@ -505,11 +505,11 @@ test("athlete creation, identity edit, affiliation edit and reload use A:X witho
  const [reloaded]=await getSheetRows({sheetName:"ATHLETES",spreadsheetId:"actors-fixture",bypassCache:true})
  for(const [key,value] of Object.entries({...identity,nom_complet:"Updated Athlete",id_club_cnac:"C2",id_equipe_cnac:"T2"}))assert.equal(reloaded[key],value)
  assert.equal("id_division" in reloaded,false)
- assert.ok(f.updates.some(cell=>cell.range==="'ATHLETES'!W2"))
- assert.ok(f.updates.some(cell=>cell.range==="'ATHLETES'!X2"))
+ assert.ok(f.updates.some(cell=>cell.range==="'ATHLETES'!R2"))
+ assert.ok(f.updates.some(cell=>cell.range==="'ATHLETES'!S2"))
  assert.ok(f.updates.every(cell=>!/^'ATHLETES'![Y-Z]/.test(cell.range)))
  assert.ok(f.reads.flat().every(range=>!range.includes("DIVISIONS")))
- assert.ok(f.reads.flat().filter(range=>range.startsWith("'ATHLETES'!")&&!/^'ATHLETES'!([A-Z]+):\1$/.test(range)).every(range=>range==="'ATHLETES'!A:X"))
+ assert.ok(f.reads.flat().filter(range=>range.startsWith("'ATHLETES'!")&&!/^'ATHLETES'!([A-Z]+):\1$/.test(range)).every(range=>range==="'ATHLETES'!A:S"))
  const before=structuredClone(f.matrices.get("ATHLETES"))
  const obsolete=await actorWrite("athletes",request({id:athlete.id_athlete_cnac,row:{id_division:"D1"}}),"PUT")
  assert.equal(obsolete.status,400)
