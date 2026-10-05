@@ -1,5 +1,9 @@
 # Cartographie COC → CNAC
 
+## Localisation des athlètes héritée des équipes — 5 octobre 2026
+
+La section Localisation lit le lieu, l'adresse, le fuseau horaire et les jours/heures de l'équipe rattachée à l'athlète. Le schéma et les mappings EQUIPES conservent les quatre colonnes d'entraînement L:O, auparavant écartées par le serveur. Les modifications de planning sont validées avant écriture. Les horaires sont groupés par jour en heure locale ; une équipe incompatible avec le club ou la fédération n'est pas utilisée. Aucune copie du planning n'est enregistrée dans ATHLETES.
+
 ## Contrat ATHLETES sans passeport ni division — 5 octobre 2026
 
 Le schéma serveur ATHLETES retire numero_passeport, date_de_delivrance_passeport, date_expiration_passeport et id_division. Il correspond aux 19 colonnes A:S : statut en N, avatar_drive_id en O, avatar_drive_url en P, observations en Q, id_club_cnac en R et id_equipe_cnac en S. Les formulaires et fiches athlètes ne contiennent plus de passeport. Les anciens champs sont refusés à l'écriture, sans création de colonne Google. Les 25 tests unitaires ciblés et le test d'intégration de création/modification/rechargement réussissent.

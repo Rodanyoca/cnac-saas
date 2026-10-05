@@ -19,6 +19,32 @@ const root = fileURLToPath(new URL("../../", import.meta.url))
 const require = createRequire(import.meta.url)
 const request = (body: unknown) => new Request("http://fixture.invalid/api", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
 
+test("athlete localisation inherits the place and weekday hours loaded from its team sheet", async () => {
+  const f = fixture()
+  const team: SheetRecord = {
+    id_equipe_cnac: "T1", id_club_cnac: "C1", id_federation: "FED1", nom_equipe: "Equipe test",
+    lieu_entrainement: "Gymnase du club", adresse_entrainement: "Adresse du gymnase",
+    fuseau_horaire_entrainement: "Africa/Kinshasa",
+    planning_entrainement_json: JSON.stringify([
+      { jour: 3, heure_debut: "17:30", heure_fin: "19:00" },
+      { jour: 1, heure_debut: "16:00", heure_fin: "18:00" },
+    ]),
+  }
+  f.matrices.set("EQUIPES", [[...CNAC_HEADERS.EQUIPES], CNAC_HEADERS.EQUIPES.map(key => team[key] || "")])
+  const { loadAffiliationReferences } = f.load(resolve(root, "lib/cnac/affiliation-data.ts")) as { loadAffiliationReferences: () => Promise<Record<string, SheetRecord[]>> }
+  const { AthleteTeamTraining } = f.load(resolve(root, "components/dashboard/team-training-summary.tsx")) as { AthleteTeamTraining: ComponentType<{ teams: SheetRecord[]; affiliation: SheetRecord }> }
+  const refs = await loadAffiliationReferences()
+  const html = renderToStaticMarkup(createElement(AthleteTeamTraining, { teams: refs.EQUIPES, affiliation: { id_equipe_cnac: "T1", id_club_cnac: "C1", id_federation: "FED1" } }))
+  assert.match(html, /Gymnase du club/)
+  assert.match(html, /Lundi/)
+  assert.match(html, /16 h–18 h/)
+  assert.match(html, /Mercredi/)
+  assert.match(html, /17 h 30–19 h/)
+  assert.ok(html.indexOf("Lundi") < html.indexOf("Mercredi"))
+  const incompatible = renderToStaticMarkup(createElement(AthleteTeamTraining, { teams: refs.EQUIPES, affiliation: { id_equipe_cnac: "T1", id_club_cnac: "OTHER", id_federation: "FED1" } }))
+  assert.doesNotMatch(incompatible, /Gymnase du club/)
+})
+
 test("athlete affiliation references load the current fifteen-column EQUIPES sheet", async () => {
   const f = fixture()
   const headers = [...CNAC_HEADERS.EQUIPES]

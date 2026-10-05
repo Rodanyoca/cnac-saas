@@ -1,4 +1,5 @@
 import { sportingFields, validateTeamAttachment } from "./affiliation-model.ts"
+import { trainingPatch } from "./team-training.ts"
 import { CNAC_HEADERS,CNAC_KEYS } from "./schema.ts"
 import { civilDate,CnacDataError,physicalColumn,type SheetRecord } from "./model.ts"
 import { TERRITORIAL_RESOURCE_BINDINGS } from "./territorial-resources.ts"
@@ -93,6 +94,7 @@ export function territorialPatch(kind:TerritorialKind,input:Record<string,unknow
     if(row[federalColumn] && other.some(item=>item.id_federation===row.id_federation&&item[federalColumn]===row[federalColumn]))throw new CnacDataError("DUPLICATE_FEDERAL_ID","Identifiant fédéral déjà utilisé dans cette fédération.",409)
   }
   if(kind === "equipes" && (!current || sportingFields.some(field => field in patch) || "id_club_cnac" in patch)) validateTeamAttachment(row, {...refs,...territorial})
+  if(kind === "equipes") trainingPatch(patch, current)
   for(const [field,refSheet,key] of [["id_province","PROVINCES","id_province"],["id_ville","VILLES","id_ville"],["id_sport","SPORTS","id_sport"],["id_discipline","DISCIPLINES","id_discipline"],["id_categorie_age","CATEGORIES_AGE","id_categorie_age"],["id_sexe","SEXES","id_sexe"]]){
     if(!row[field])continue
     if(!current || field in patch){const reference=refs[refSheet]?.find(ref=>ref[key]===row[field]);if(!reference)throw new CnacDataError("REFERENCE_INVALID",`Référence ${field} introuvable.`);if(reference.id_federation&&reference.id_federation!==row.id_federation)throw new CnacDataError("REFERENCE_OWNER",`La référence ${field} appartient à une autre fédération.`)}
