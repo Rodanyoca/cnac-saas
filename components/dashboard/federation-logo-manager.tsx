@@ -11,8 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { FEDERATION_LOGO_ACCEPT, logoDialogReducer, validateFederationLogo } from "@/lib/federations/logo"
 
-export function FederationLogoManager({ federationId, federationName, initials, initialUrl, canEdit }: {
-  federationId: string; federationName: string; initials: string; initialUrl: string; canEdit: boolean
+export function FederationLogoManager({ federationId, federationName, initials, initialUrl, canEdit, uploadAvailable = true }: {
+  federationId: string; federationName: string; initials: string; initialUrl: string; canEdit: boolean; uploadAvailable?: boolean
 }) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -61,7 +61,11 @@ export function FederationLogoManager({ federationId, federationName, initials, 
       {logoUrl && <AvatarImage key={logoUrl} src={logoUrl} alt={`Logo de ${federationName}`} className="object-contain p-1" />}
       <AvatarFallback className="bg-primary/10 text-2xl text-primary">{initials}</AvatarFallback>
     </Avatar>
-    {canEdit && <Dialog open={state.open} onOpenChange={(open) => open ? dispatch({ type: "open" }) : close()}>
+    {canEdit && !uploadAvailable && <div className="mt-1 max-w-56 text-center">
+      <Button type="button" variant="ghost" disabled className="h-6 px-2 text-[11px] text-muted-foreground"><Pencil className="h-3 w-3" aria-hidden="true" />Modifier le logo</Button>
+      <p className="mt-1 text-xs text-muted-foreground">Envoi des logos temporairement indisponible.</p>
+    </div>}
+    {canEdit && uploadAvailable && <Dialog open={state.open} onOpenChange={(open) => open ? dispatch({ type: "open" }) : close()}>
       <DialogTrigger asChild><Button type="button" variant="ghost" className="mt-1 h-6 px-2 text-[11px] text-muted-foreground"><Pencil className="h-3 w-3" aria-hidden="true" />Modifier le logo</Button></DialogTrigger>
       <DialogContent className="max-h-[90vh] overflow-y-auto p-4 sm:max-w-sm sm:p-5">
         <DialogHeader><DialogTitle>Modifier le logo</DialogTitle><DialogDescription>PNG, JPG, JPEG ou WebP · 4 Mo maximum.</DialogDescription></DialogHeader>

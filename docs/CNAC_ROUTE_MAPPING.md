@@ -1,5 +1,9 @@
 # Cartographie COC → CNAC
 
+## Option logo en production — 5 octobre 2026
+
+Dans les paramètres de fédération, le droit d'écriture et la disponibilité de l'envoi Drive sont distincts. L'utilisateur autorisé voit « Modifier le logo » même si la configuration d'envoi est absente ; le bouton est désactivé avec une explication et aucun formulaire d'envoi n'est ouvert. Sans droit d'écriture, les contrôles restent masqués. L'envoi nécessite GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_DRIVE_REFRESH_TOKEN et GOOGLE_DRIVE_FEDERATION_LOGOS_FOLDER_ID dans l'environnement Production de Vercel. La présence de ces variables en local ne configure pas Vercel.
+
 ## Réduction des appels Sheets — 5 octobre 2026
 
 Le cache CNAC réutilise chaque feuille valide et ne demande que les feuilles manquantes. Les lectures simultanées de groupes différents partagent les requêtes en cours pour leurs feuilles communes. Les consultations de fédérations, détails, options et structures utilisent un cache de 60 secondes, contre 5 secondes auparavant. Les contacts utilisent le cache à l'affichage et une lecture fraîche pour leur validation avant écriture. Les écritures continuent à relire leurs positions physiques et à invalider le cache. Ce cache mémoire reste propre à chaque instance serveur ; il n'est pas partagé entre les instances Vercel.
