@@ -227,14 +227,12 @@ export const CNAC_HEADERS = {
     "telephone",
     "email",
     "adresse",
-    "numero_passeport",
-    "date_de_delivrance_passeport",
-    "date_expiration_passeport",
     "statut",
+    "avatar_drive_id",
+    "avatar_drive_url",
     "observations",
     "id_club_cnac",
-    "id_equipe_cnac",
-    "id_division"
+    "id_equipe_cnac"
   ],
   "COACHS": [
     "id_coach_cnac",

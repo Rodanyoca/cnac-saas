@@ -1,5 +1,9 @@
 # Cartographie COC → CNAC
 
+## Contrat ATHLETES sans passeport ni division — 5 octobre 2026
+
+Le schéma serveur ATHLETES retire numero_passeport, date_de_delivrance_passeport, date_expiration_passeport et id_division. Il correspond aux 19 colonnes A:S : statut en N, avatar_drive_id en O, avatar_drive_url en P, observations en Q, id_club_cnac en R et id_equipe_cnac en S. Les formulaires et fiches athlètes ne contiennent plus de passeport. Les anciens champs sont refusés à l'écriture, sans création de colonne Google. Les 25 tests unitaires ciblés et le test d'intégration de création/modification/rechargement réussissent.
+
 ## Option logo en production — 5 octobre 2026
 
 Dans les paramètres de fédération, le droit d'écriture et la disponibilité de l'envoi Drive sont distincts. L'utilisateur autorisé voit « Modifier le logo » même si la configuration d'envoi est absente ; le bouton est désactivé avec une explication et aucun formulaire d'envoi n'est ouvert. Sans droit d'écriture, les contrôles restent masqués. L'envoi nécessite GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_DRIVE_REFRESH_TOKEN et GOOGLE_DRIVE_FEDERATION_LOGOS_FOLDER_ID dans l'environnement Production de Vercel. La présence de ces variables en local ne configure pas Vercel.
