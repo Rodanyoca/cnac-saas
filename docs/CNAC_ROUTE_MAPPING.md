@@ -1,5 +1,29 @@
 # Cartographie COC → CNAC
 
+## Lieux d'entraînement individuels — 5 octobre 2026
+
+Le filtre Sexe reconnaît les libellés Masculin/Féminin avec les identifiants réels du référentiel SEXES, notamment SEX001/SEX002 confirmés par l'utilisateur. Le sélecteur et la validation de sauvegarde partagent cette règle ; les identifiants ne sont pas réécrits en 01/02 et Mixte reste exclu des personnes. Les tests vérifient l'affichage et la création via le handler réel avec conservation de SEX001/SEX002, ainsi que le refus d'un identifiant inconnu ou absent du référentiel.
+
+Le sélecteur Sexe de création des athlètes utilise les lignes SEXES déjà chargées avec les références d'affiliation de la page. Il ne dépend plus du chargement distinct du layout, dont les erreurs pouvaient laisser le sélecteur vide. Les identifiants 01/02 sont transmis sans transformation ; aucune option fictive ni lecture supplémentaire n'est ajoutée.
+
+Correction de l'éditeur Équipe : le statut vide ou composé d'espaces est initialisé à ACTIF dans l'état envoyé, conformément à la valeur affichée par le sélecteur. INACTIF est conservé et les statuts inconnus restent refusés par l'API. Non-régression vérifiée via le vrai handler territorial et le transport Sheets en mémoire ; aucune écriture dans les sources réelles.
+
+Les cartes de localisation affichent explicitement « Adresse : » avec un libellé accentué. Une valeur vide ou composée d'espaces affiche « Non renseignée », y compris dans l'état sans équipe.
+
+La section Localisation de l'athlète distingue les entraînements hérités de son équipe et ses lieux individuels. Le nouveau drawer réutilise le composant et les validations d'entraînement des équipes ; il permet plusieurs lieux et plusieurs créneaux par jour. Les lieux actifs sont affichés par défaut ; les lieux inactifs peuvent être consultés puis réactivés. L'adresse reste visible, les observations sont affichées lorsqu'elles existent, et les horaires restent en heure locale IANA, sans conversion hebdomadaire vers UTC.
+
+La feuille existante LOCALISATION du classeur ACTEURS est enregistrée dans le schéma avec ses huit colonnes A:H, sans modification des en-têtes. Une ligne désigne un lieu individuel, identifié par un UUID préfixé LOC selon la convention des contacts d'entités. L'API `/api/athletes/[id]/localisations` vérifie les droits AUT-SPT, l'existence de l'athlète et l'appartenance du lieu. Les identifiants sont immuables ; les mises à jour partielles préservent les autres cellules. La désactivation change seulement le statut. Une vérification d'appartenance est aussi réalisée sur la lecture fraîche qui précède l'écriture.
+
+Les succès ne sont affichés qu'après confirmation Sheets. Les écritures invalident le cache Sheets et la fiche concernée. Les lieux individuels ne sont pas copiés dans ATHLETES ni dans EQUIPES ; changer d'équipe ne les modifie pas. Les états de chargement, vide, erreur, anomalie historique et réessai sont prévus. Un planning historique illisible reste conservé tant qu'il n'est pas corrigé explicitement.
+
+Validation sur fixtures uniquement : 64 tests unitaires/intégration ciblés et un test navigateur desktop/mobile, couvrant création, plusieurs lieux, modification, désactivation/réactivation, rechargement, changement d'équipe, permissions et échec d'écriture. Les captures sont dans `.cache/localisation-ui/`. Build de production réussi ; lint sans erreur avec les deux avertissements existants. Aucune donnée de test écrite dans les classeurs réels. Changements locaux, sans commit ni push.
+
+## Localisation compacte — 5 octobre 2026
+
+Le champ Adresse reste toujours visible dans la carte d'entraînement, avec son libellé et « Non renseignée » lorsque la donnée est vide.
+
+La fiche athlète regroupe le lieu et l'adresse d'entraînement avec les jours et horaires dans une même carte compacte. Les créneaux s'affichent sur des pastilles qui reviennent à la ligne et le bloc s'empile sur mobile. Le bouton initialement sans action est remplacé par « Ajouter un lieu d’entraînement », connecté au drawer individuel décrit ci-dessus. La vue détaillée des équipes conserve son affichage actuel. Modification locale, sans push.
+
 ## Localisation des athlètes héritée des équipes — 5 octobre 2026
 
 La section Localisation lit le lieu, l'adresse, le fuseau horaire et les jours/heures de l'équipe rattachée à l'athlète. Le schéma et les mappings EQUIPES conservent les quatre colonnes d'entraînement L:O, auparavant écartées par le serveur. Les modifications de planning sont validées avant écriture. Les horaires sont groupés par jour en heure locale ; une équipe incompatible avec le club ou la fédération n'est pas utilisée. Aucune copie du planning n'est enregistrée dans ATHLETES.

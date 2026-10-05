@@ -16,7 +16,7 @@ function client(write=false) {
   const {email,key} = cnacCredentials()
   return sheets({version:"v4",auth:new googleAuth.JWT({email,key,scopes:[`https://www.googleapis.com/auth/spreadsheets${write?"":".readonly"}`]})})
 }
-const range = (name:string) => `'${name.replaceAll("'","''")}'!${name === "ATHLETES" ? "A:S" : name === "EQUIPES" ? "A:O" : "A:AZ"}`
+const range = (name:string) => `'${name.replaceAll("'","''")}'!${name === "LOCALISATION" ? "A:H" : name === "ATHLETES" ? "A:S" : name === "EQUIPES" ? "A:O" : "A:AZ"}`
 export function clearSheetCache() { store.generation++;store.cache.clear();store.pending.clear() }
 
 async function tables(request: Params): Promise<Record<string,SheetTable>> {
@@ -130,10 +130,14 @@ export async function cnacMediaIsReferenced(fileId: string) {
 }
 
 function columnLetter(index:number) { let result="";for(let n=index+1;n;n=Math.floor((n-1)/26))result=String.fromCharCode(65+(n-1)%26)+result;return result }
-export async function updateSheetCells(params:{sheetName:string;spreadsheetId:string;idColumn:string;idValue:string;updates:{column:string;value:string}[]}) {
+export async function updateSheetCells(params:{sheetName:string;spreadsheetId:string;idColumn:string;idValue:string;updates:{column:string;value:string}[];expectedValues?:Record<string,string>}) {
   const sheet=cnacWorkbook(params.sheetName,params.spreadsheetId)
   // Relire les positions physiques juste avant l’écriture; jamais de numéro venant du client.
   const table=(await tables({spreadsheetId:params.spreadsheetId,sheetNames:[sheet],bypassCache:true}))[sheet]
+  if (params.expectedValues) {
+    const matches = table.rows.filter(row => row[params.idColumn] === params.idValue)
+    if (matches.length !== 1 || !Object.entries(params.expectedValues).every(([key,value]) => matches[0][key] === value)) throw new CnacDataError("SAVE_CONFLICT", "Le lieu a changé avant l’enregistrement. Rechargez la section.", 409)
+  }
   const cells=updateCells(table,sheet,params.idColumn,params.idValue,params.updates)
   if(!cells.length)throw new CnacDataError("EMPTY_UPDATE","Aucune modification à enregistrer.")
   const api=client(true)

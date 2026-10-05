@@ -1,6 +1,6 @@
 "use client"
 import { AthleteAffiliationFields, AthleteAffiliationSummary } from "@/components/dashboard/athlete-affiliation"
-import { AthleteTeamTraining } from "@/components/dashboard/team-training-summary"
+import { AthleteLocalisation } from "@/components/dashboard/athlete-localisation"
 import { updateAffiliation, type AffiliationReferences } from "@/lib/cnac/affiliation-model"
 import { displayCivilDate } from "@/lib/cnac/model"
 import { sexLabel } from "@/lib/cnac/display"
@@ -227,7 +227,7 @@ export function AthleteDetailClient({
         contactInfo={contactInfo}
         additionalSections={[
           { id: "affiliations", label: "Affiliations", content: <Card><CardHeader><CardTitle>Affiliations sportives</CardTitle></CardHeader><CardContent><AthleteAffiliationSummary detailed refs={affiliationRefs} value={{id_federation: athlete.idFederation, id_club_cnac: athlete.idClub, id_equipe_cnac: athlete.idEquipe}} /></CardContent></Card> },
-          { id: "localisation", label: "Localisation", content: <AthleteTeamTraining teams={affiliationRefs.EQUIPES || []} affiliation={{ id_equipe_cnac: athlete.idEquipe, id_club_cnac: athlete.idClub, id_federation: athlete.idFederation }} /> },
+          { id: "localisation", label: "Localisation", content: <AthleteLocalisation key={athlete.id} athleteId={athlete.id} teams={affiliationRefs.EQUIPES || []} affiliation={{ id_equipe_cnac: athlete.idEquipe, id_club_cnac: athlete.idClub, id_federation: athlete.idFederation }} /> },
           ...(["controles", "aut"] as const).map(id => ({ id, label: id === "controles" ? "Contrôles" : "AUT", content: <Card><CardHeader><CardTitle>{id === "controles" ? "Contr\u00f4les" : "AUT"}</CardTitle></CardHeader><CardContent className="py-10 text-center text-muted-foreground">Coming soon</CardContent></Card> })),
         ]}
         profileActions={<Button onClick={openEditor}><Pencil className="mr-2 h-4 w-4" />Modifier</Button>}

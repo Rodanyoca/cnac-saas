@@ -334,7 +334,7 @@ export function AthletesClient({
                   <Select value={form.id_sexe} onValueChange={(value) => update("id_sexe", value)}>
                     <SelectTrigger id="id_sexe"><SelectValue placeholder="Sélectionner le sexe" /></SelectTrigger>
                     <SelectContent>
-                      <PersonSexOptions />
+                      <PersonSexOptions rows={affiliationRefs.SEXES || []} />
                     </SelectContent>
                   </Select>
                 </div>

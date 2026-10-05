@@ -1,4 +1,5 @@
 import { validateAthleteAffiliation } from "./affiliation-model.ts"
+import { personSexOptions } from "./person-sex.ts"
 import { CNAC_HEADERS, CNAC_KEYS, type CnacSheet } from "./schema.ts"
 import { civilDate, CnacDataError, physicalColumn, type SheetRecord } from "./model.ts"
 
@@ -31,7 +32,7 @@ export function actorPatch(kind:ActorKind,input:Record<string,unknown>,current:S
   const relationSheet=config.relation==="id_federation"?"FEDERATIONS":"ENTITES"
   if((!current || config.relation in changes) && !refs[relationSheet]?.some(ref=>ref[config.relation]===row[config.relation]))missing("La référence de rattachement est introuvable.")
   if(!row.id_sexe)missing("Le sexe est obligatoire.")
-  if(!current || "id_sexe" in changes){if(!["01","02"].includes(row.id_sexe) || !refs.SEXES?.some(ref=>ref.id_sexe===row.id_sexe))missing("Sexe inconnu ou non autorisé pour une personne.")}
+  if(!current || "id_sexe" in changes){if(!personSexOptions(refs.SEXES || []).some(ref=>ref.id===row.id_sexe))missing("Sexe inconnu ou non autorisé pour une personne.")}
   if(kind==="medecins" && row.id_specialite_sante && (!current || "id_specialite_sante" in changes) && !refs.SPECIALITES_MEDECIN?.some(ref=>ref.id_specialite_sante===row.id_specialite_sante))missing("Spécialité de santé introuvable.")
   if(changes.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(changes.email))missing("L’adresse électronique n’est pas valide.")
   if(changes.telephone && !/^[+\d][\d\s().-]{5,24}$/.test(changes.telephone))missing("Le numéro de téléphone n’est pas valide.")

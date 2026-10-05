@@ -9,6 +9,7 @@ export type TerritorialKind=keyof typeof TERRITORIAL_SHEETS
 const singular={zones:"zone",ligues:"ligue",ententes:"entente",cercles:"cercle",clubs:"club",equipes:"equipe"} as const
 // Conserver les champs du contrat et leurs alias historiques dans les éditeurs territoriaux.
 export function territorialEditorRow(kind: string, row: SheetRecord): SheetRecord {
+  if (kind === "equipes") return { ...row, statut: row.statut?.trim() || "ACTIF" }
   if (kind !== "zones" && kind !== "ententes") return row
   const columns: readonly string[] = CNAC_HEADERS[TERRITORIAL_SHEETS[kind]]
   return Object.fromEntries(Object.entries(row).filter(([key]) => columns.includes(physicalColumn(key)) || ["directParentId", "parent_label", "relation_issue", "id_structure_parent_coc", "id_structure_parent_cnac"].includes(key)))

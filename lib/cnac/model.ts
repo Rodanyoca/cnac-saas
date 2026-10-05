@@ -54,6 +54,7 @@ export function assertHeaders(sheet: CnacSheet, headers: string[]) {
   const canonicalHeaders = headers.map(column => canonicalSheetColumn(sheet, column))
   const missing = CNAC_HEADERS[sheet].filter(column => !(sheet === "CATEGORIES_AGE" && optionalAgeCategoryHeaders.has(column)) && !(sheet === "CLUBS" && column === "id_categorie_club") && !canonicalHeaders.includes(column))
   if (missing.length) throw new CnacDataError("MAPPING_COLUMNS", `Colonnes absentes dans ${sheet} : ${missing.join(", ")}.`, 502)
+  if (sheet === "LOCALISATION" && (canonicalHeaders.length !== 8 || CNAC_HEADERS.LOCALISATION.some((column, index) => canonicalHeaders[index] !== column))) throw new CnacDataError("MAPPING_COLUMNS", "Ordre des colonnes incompatible dans LOCALISATION (A:H).", 502)
   if (sheet === "ATHLETES" && CNAC_HEADERS.ATHLETES.some((column, index) => canonicalHeaders[index] !== column)) throw new CnacDataError("MAPPING_COLUMNS", "Ordre des colonnes incompatible dans ATHLETES (A:S).", 502)
   const populated = canonicalHeaders.filter(Boolean)
   if (new Set(populated).size !== populated.length) throw new CnacDataError("MAPPING_DUPLICATES", `En-têtes dupliqués dans ${sheet}.`, 502)
@@ -102,7 +103,7 @@ export function appendValues(table: SheetTable, sheet: CnacSheet, input: SheetRe
   })
   assertHeaders(sheet, table.headers)
   // Borner les écritures aux colonnes physiques du contrat.
-  const bounded = sheet === "ATHLETES" || sheet === "ZONES" || sheet === "ENTENTES" || sheet === "EQUIPES"
+  const bounded = sheet === "ATHLETES" || sheet === "ZONES" || sheet === "ENTENTES" || sheet === "EQUIPES" || sheet === "LOCALISATION"
   const headers = bounded ? [...CNAC_HEADERS[sheet]] : table.headers
   if (bounded && headers.some((column, index) => table.headers[index] !== column)) {
     throw new CnacDataError("MAPPING_COLUMNS", `Ordre des colonnes incompatible dans ${sheet}.`, 502)

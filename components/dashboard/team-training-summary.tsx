@@ -3,9 +3,11 @@ import { activeTrainingTeam, trainingDays, validateTraining, type TeamTraining }
 
 function localHour(value: string) { const [hour, minute] = value.split(":"); return `${Number(hour)} h${minute === "00" ? "" : ` ${minute}`}` }
 
-export function TeamTrainingSummary({ team, emptyMessage = "Aucune équipe active renseignée." }: { team?: TeamTraining & { nom_equipe?: string }; emptyMessage?: string }) {
+export function TeamTrainingSummary({ team, emptyMessage = "Aucune équipe active renseignée.", compact = false, individual = false }: { team?: TeamTraining & { nom_equipe?: string }; emptyMessage?: string; compact?: boolean; individual?: boolean }) {
   const groups: { day: number; times: string[] }[] = []
   let anomaly = ""
+  const address = team?.adresse_entrainement?.trim() || "Non renseignée"
+  const addressLine = <p className="break-words text-sm"><span className="font-semibold">Adresse :</span> {address}</p>
   if (team) {
     try {
       for (const slot of validateTraining(team)) {
@@ -13,8 +15,25 @@ export function TeamTrainingSummary({ team, emptyMessage = "Aucune équipe activ
         if (!group) { group = { day: slot.jour, times: [] }; groups.push(group) }
         group.times.push(`${localHour(slot.heure_debut)}–${localHour(slot.heure_fin)}`)
       }
-    } catch { anomaly = "Le planning de cette équipe présente une anomalie. Faites-le corriger dans sa fiche." }
+    } catch { anomaly = individual ? "Le planning de ce lieu présente une anomalie. Modifiez-le pour le corriger." : "Le planning de cette équipe présente une anomalie. Faites-le corriger dans sa fiche." }
   }
+  if (compact) return <div className="space-y-3">
+    <Card className="min-w-0 gap-0 border-border/70 py-4"><CardContent className="space-y-3 px-4">
+      {!team ? <div className="space-y-2"><p className="text-sm text-muted-foreground">{emptyMessage}</p>{addressLine}</div> : <div className="grid min-w-0 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] sm:gap-5">
+        <div className="min-w-0 space-y-1">
+          <p className="text-xs text-muted-foreground">Lieu d’entraînement</p>
+          <p className="break-words text-sm font-semibold">{team.lieu_entrainement || "Non renseigné"}</p>
+          {addressLine}
+          {team.nom_equipe && <p className="break-words text-xs text-muted-foreground">Équipe : {team.nom_equipe}</p>}
+        </div>
+        <div className="min-w-0 space-y-2">
+          <p className="text-xs text-muted-foreground">Heure locale{team.fuseau_horaire_entrainement ? ` · ${team.fuseau_horaire_entrainement}` : ""}</p>
+          {anomaly ? <p role="alert" className="text-sm text-destructive">{anomaly}</p> : groups.length ? <ul className="flex flex-wrap gap-2 text-sm">{groups.map(group => <li key={group.day} className="rounded-md bg-muted/50 px-2.5 py-1.5"><span className="font-medium">{trainingDays[group.day - 1]} :</span> {group.times.join(" et ")}</li>)}</ul> : <p className="text-sm text-muted-foreground">{individual ? "Aucun planning d’entraînement renseigné pour ce lieu." : "Aucun planning d’entraînement renseigné pour cette équipe."}</p>}
+        </div>
+      </div>}
+      <p className="text-xs text-muted-foreground">Ce planning hebdomadaire ne confirme pas la présence effective de l’athlète.</p>
+    </CardContent></Card>
+  </div>
   return <Card className="min-w-0 border-border/70"><CardHeader><CardTitle className="text-base">Entraînements habituels de l’équipe</CardTitle>{team?.nom_equipe && <p className="break-words text-sm text-muted-foreground">{team.nom_equipe}</p>}</CardHeader><CardContent className="space-y-5">
     {!team ? <p className="text-sm text-muted-foreground">{emptyMessage}</p> : <>
       <dl className="grid gap-4 text-sm sm:grid-cols-2"><div className="min-w-0"><dt className="text-muted-foreground">Lieu d’entraînement</dt><dd className="mt-1 break-words font-medium">{team.lieu_entrainement || "Non renseigné"}</dd></div><div className="min-w-0"><dt className="text-muted-foreground">Adresse</dt><dd className="mt-1 break-words font-medium">{team.adresse_entrainement || "Non renseignée"}</dd></div><div className="min-w-0"><dt className="text-muted-foreground">Fuseau horaire</dt><dd className="mt-1 break-words font-medium">{team.fuseau_horaire_entrainement || "Non renseigné"}</dd></div></dl>
@@ -25,5 +44,5 @@ export function TeamTrainingSummary({ team, emptyMessage = "Aucune équipe activ
 }
 
 export function AthleteTeamTraining({ teams, affiliation }: { teams: Record<string, string>[]; affiliation: { id_equipe_cnac?: string; id_club_cnac?: string; id_federation?: string } }) {
-  return <TeamTrainingSummary team={activeTrainingTeam(teams, affiliation)} emptyMessage={affiliation.id_equipe_cnac ? "L’équipe active est introuvable ou incompatible avec l’affiliation de l’athlète." : "Aucune équipe active renseignée pour cet athlète."} />
+  return <TeamTrainingSummary compact team={activeTrainingTeam(teams, affiliation)} emptyMessage={affiliation.id_equipe_cnac ? "L’équipe active est introuvable ou incompatible avec l’affiliation de l’athlète." : "Aucune équipe active renseignée pour cet athlète."} />
 }

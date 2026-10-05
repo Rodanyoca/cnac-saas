@@ -1,5 +1,6 @@
 // En-têtes lus dans les trois classeurs CNAC; aucune colonne créée.
 export const CNAC_HEADERS = {
+  "LOCALISATION": ["id_localisation", "id_athlete_cnac", "lieu_entrainement", "adresse_entrainement", "fuseau_horaire_entrainement", "planning_entrainement_json", "statut", "observations"],
   "SPORTS": [
     "id_sport",
     "nom_sport",
@@ -341,6 +342,7 @@ export const CNAC_HEADERS = {
 } as const
 export type CnacSheet = keyof typeof CNAC_HEADERS
 export const CNAC_KEYS: Record<CnacSheet,string> = {
+  "LOCALISATION": "id_localisation",
   "SPORTS": "id_sport",
   "DISCIPLINES": "id_discipline",
   "ENTITES": "id_entite",
@@ -399,6 +401,7 @@ export const CNAC_GROUPS = {
     "PERSONNES_CONTACT_ENTITES"
   ],
   "ACTEURS": [
+    "LOCALISATION",
     "ATHLETES",
     "COACHS",
     "OFFICIELS",

@@ -19,6 +19,159 @@ const root = fileURLToPath(new URL("../../", import.meta.url))
 const require = createRequire(import.meta.url)
 const request = (body: unknown) => new Request("http://fixture.invalid/api", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
 
+function localisationFixture() {
+  let read = true, write = true
+  const f = fixture({
+    [resolve(root, "lib/auth.ts")]: { canAccess: async (_block: string, action: string) => action === "WRITE" ? write : read },
+    [resolve(root, "lib/acteurs/config.ts")]: { getActeursSpreadsheetId: () => "actors-fixture" },
+  })
+  for (const id of ["A1", "A2"]) f.matrices.get("ATHLETES")!.push(CNAC_HEADERS.ATHLETES.map(key => key === "id_athlete_cnac" ? id : ""))
+  const route = f.load(resolve(root, "app/api/athletes/[id]/localisations/route.ts")) as Record<string, (request: Request, context: { params: Promise<{id:string}> }) => Promise<Response>>
+  const call = (method: string, body?: unknown, id = "A1") => route[method](body ? request(body) : new Request("http://fixture.invalid/api"), { params: Promise.resolve({id}) })
+  return { ...f, call, permissions: (r: boolean, w: boolean) => { read = r; write = w } }
+}
+
+test("team editor persists the displayed active default when the sheet status is empty", async () => {
+  const f = fixture()
+  const club: SheetRecord = {id_club_cnac:"C1",id_federation:"FED1",nom_club:"Club"}
+  f.matrices.get("CLUBS")!.push(CNAC_HEADERS.CLUBS.map(key => club[key] || ""))
+  const created = await f.territorialWrite("equipes", request({row:{id_federation:"FED1",id_club_cnac:"C1",nom_equipe:"Équipe",id_categorie_age:"AGE1"}}), "POST")
+  const createdPayload = await created.json()
+  assert.equal(created.status, 200, JSON.stringify(createdPayload))
+  const team = createdPayload.row
+  for (const statut of ["", "   ", "INACTIF"]) {
+    const row = territorialEditorRow("equipes", {...team, statut})
+    const response = await f.territorialWrite("equipes", request({id:team.id_equipe_cnac,row}), "PUT")
+    const payload = await response.json()
+    assert.equal(response.status, 200, JSON.stringify(payload))
+    assert.equal(payload.row.statut, statut.trim() || "ACTIF")
+  }
+  const invalid = await f.territorialWrite("equipes", request({id:team.id_equipe_cnac,row:territorialEditorRow("equipes",{...team,statut:"UNKNOWN"})}), "PUT")
+  assert.equal(invalid.status, 400)
+  assert.equal((await invalid.json()).code, "STATUS_INVALID")
+})
+
+test("athlete sex choices use page references even without a layout provider", () => {
+  const f = fixture({[resolve(root,"components/ui/select.tsx")]:{SelectItem:({value,children}:{value:string;children:string})=>createElement("option",{value},children)}})
+  const {PersonSexOptions} = f.load(resolve(root,"components/dashboard/cnac-actor-references.tsx")) as {PersonSexOptions:ComponentType<{rows:SheetRecord[]}>}
+  const html = renderToStaticMarkup(createElement(PersonSexOptions,{rows:[{id_sexe:"01",nom_sexe:"Masculin"},{id_sexe:"02",nom_sexe:"Féminin"},{id_sexe:"03",nom_sexe:"Mixte"}]}))
+  assert.match(html, /value="01">Masculin/)
+  assert.match(html, /value="02">Féminin/)
+  assert.doesNotMatch(html, /Mixte/)
+  assert.equal(renderToStaticMarkup(createElement(PersonSexOptions,{rows:[]})), "")
+  const numeric = renderToStaticMarkup(createElement(PersonSexOptions,{rows:[{id_sexe:"1",nom_sexe:"Masculin"},{id_sexe:"2",nom_sexe:"Féminin"}]}))
+  assert.match(numeric, /value="1">Masculin/)
+  assert.match(numeric, /value="2">Féminin/)
+  const reference = renderToStaticMarkup(createElement(PersonSexOptions,{rows:[{id_sexe:"SEX001",nom_sexe:"Masculin"},{id_sexe:"SEX002",nom_sexe:"Féminin"},{id_sexe:"SEX003",nom_sexe:"Mixte"}]}))
+  assert.match(reference, /value="SEX001">Masculin/)
+  assert.match(reference, /value="SEX002">Féminin/)
+  assert.doesNotMatch(reference, /SEX003/)
+})
+
+test("athlete creation persists the actual SEXES reference IDs and refuses unknown or mixed IDs", async () => {
+  const f = fixture({}, {NODE_ENV:"test"}, true)
+  f.matrices.set("SEXES", [[...CNAC_HEADERS.SEXES], ...[{id_sexe:"SEX001",nom_sexe:"Masculin"},{id_sexe:"SEX002",nom_sexe:"Féminin"},{id_sexe:"SEX003",nom_sexe:"Mixte"}].map(row=>CNAC_HEADERS.SEXES.map(key=>row[key as keyof typeof row]||""))])
+  const {actorWrite} = f.load(resolve(root,"lib/cnac/actor-handler.ts")) as {actorWrite:(kind:string,request:Request,method:string)=>Promise<Response>}
+  for (const id_sexe of ["SEX001", "SEX002"]) {
+    const response = await actorWrite("athletes",request({row:{nom_complet:"Athlète fixture",id_federation:"FED1",id_sexe}}),"POST")
+    const payload = await response.json()
+    assert.equal(response.status,200,JSON.stringify(payload))
+    assert.equal(payload.row.id_sexe,id_sexe)
+  }
+  for (const id_sexe of ["SEX003","SEX999","01"]) assert.equal((await actorWrite("athletes",request({row:{nom_complet:"Athlète fixture",id_federation:"FED1",id_sexe}}),"POST")).status,400)
+  assert.deepEqual(parseTable("ATHLETES",f.matrices.get("ATHLETES")!).rows.map(row=>row.id_sexe),["SEX001","SEX002"])
+})
+
+test("individual venues persist separately from teams, support multiple places and status round trips", async () => {
+  const f = localisationFixture()
+  const teamBefore = structuredClone(f.matrices.get("EQUIPES"))
+  const schedule = JSON.stringify([{jour:3,heure_debut:"16:00",heure_fin:"18:00"},{jour:1,heure_debut:"16:00",heure_fin:"18:00"},{jour:3,heure_debut:"09:00",heure_fin:"11:00"}])
+  const created = await f.call("POST", { row: { lieu_entrainement: "Salle X", adresse_entrainement: "Adresse X", fuseau_horaire_entrainement: "Africa/Kinshasa", planning_entrainement_json: schedule, observations: "Garder" } })
+  assert.equal(created.status, 200)
+  const first = (await created.json()).row
+  assert.match(first.id_localisation, /^LOC-/)
+  assert.equal(first.id_athlete_cnac, "A1")
+  assert.equal(f.appends[0].range, "'LOCALISATION'!A:H")
+  assert.equal(f.appends[0].values[0].length, 8)
+  assert.equal(JSON.parse(first.planning_entrainement_json)[0].jour, 1)
+  const second = (await (await f.call("POST", { row: { lieu_entrainement: "Salle Y" } })).json()).row
+  assert.notEqual(first.id_localisation, second.id_localisation)
+  assert.equal((await (await f.call("GET")).json()).localisations.length, 2)
+  for (const statut of ["INACTIF", "ACTIF"]) {
+    assert.equal((await f.call("PUT", { id: first.id_localisation, row: { statut } })).status, 200)
+    const saved = (await (await f.call("GET")).json()).localisations.find((row: SheetRecord) => row.id_localisation === first.id_localisation)
+    assert.equal(saved.statut, statut); assert.equal(saved.observations, "Garder"); assert.equal(saved.adresse_entrainement, "Adresse X")
+  }
+  assert.equal((await f.call("PUT", { id: first.id_localisation, row: { adresse_entrainement: "Nouvelle adresse" } })).status, 200)
+  assert.equal((await (await f.call("GET")).json()).localisations[0].adresse_entrainement, "Nouvelle adresse")
+  assert.deepEqual(f.matrices.get("EQUIPES"), teamBefore)
+  assert.ok(f.updates.every(update => update.range.startsWith("'LOCALISATION'!")))
+  assert.ok(f.revalidations.some(([path]) => path === "/dashboard/acteurs/athletes/A1"))
+})
+
+test("localisation API enforces direct access, athlete existence and place ownership", async () => {
+  const f = localisationFixture()
+  const first = (await (await f.call("POST", { row: { lieu_entrainement: "Privé" } })).json()).row
+  assert.equal((await f.call("PUT", { id: first.id_localisation, row: { observations: "Forbidden" } }, "A2")).status, 404)
+  assert.equal((await f.call("POST", { row: { lieu_entrainement: "Missing" } }, "UNKNOWN")).status, 404)
+  assert.equal((await (await f.call("GET", undefined, "A2")).json()).localisations.length, 0)
+  assert.equal((await f.call("PUT", { id: first.id_localisation, row: { id_athlete_cnac: "A2" } })).status, 400)
+  assert.equal((await f.call("PUT", { id: first.id_localisation, row: { id_localisation: "OTHER" } })).status, 400)
+  const snapshot = structuredClone(f.matrices.get("LOCALISATION"))
+  f.permissions(true, false)
+  assert.equal((await (await f.call("GET")).json()).canWrite, false)
+  assert.equal((await f.call("POST", { row: { lieu_entrainement: "Forbidden" } })).status, 403)
+  assert.equal((await f.call("PUT", { id: first.id_localisation, row: { statut: "INACTIF" } })).status, 403)
+  f.permissions(false, false)
+  const readsBefore = f.reads.length
+  assert.equal((await f.call("GET")).status, 403)
+  assert.equal(f.reads.length, readsBefore)
+  assert.deepEqual(f.matrices.get("LOCALISATION"), snapshot)
+})
+
+test("individual training validation rejects invalid slots and preserves historical anomalies", async () => {
+  const f = localisationFixture()
+  const slot = {jour:1,heure_debut:"16:00",heure_fin:"18:00"}
+  for (const row of [
+    {lieu_entrainement:""},
+    {lieu_entrainement:"X",planning_entrainement_json:"broken"},
+    ...[[{...slot,jour:0}], [{...slot,heure_fin:"15:00"}], [{...slot,heure_debut:"25:00"}], [slot,slot], [slot,{...slot,heure_debut:"17:00"}]].map(slots => ({lieu_entrainement:"X",fuseau_horaire_entrainement:"Africa/Kinshasa",planning_entrainement_json:JSON.stringify(slots)})),
+    {lieu_entrainement:"X",planning_entrainement_json:JSON.stringify([slot]),fuseau_horaire_entrainement:""},
+    {lieu_entrainement:"X",statut:"UNKNOWN"},
+  ]) assert.equal((await f.call("POST", {row})).status, 400)
+  assert.equal(f.appends.length, 0)
+  const old: SheetRecord = {id_localisation:"OLD",id_athlete_cnac:"A1",lieu_entrainement:"Historique",statut:"ACTIF",planning_entrainement_json:"broken"}
+  f.matrices.get("LOCALISATION")!.push(CNAC_HEADERS.LOCALISATION.map(key => old[key] || ""))
+  assert.equal((await f.call("PUT", {id:"OLD",row:{observations:"Conserver"}})).status, 200)
+  const row = (await (await f.call("GET")).json()).localisations[0]
+  assert.equal(row.planning_entrainement_json,"broken")
+  assert.equal((await f.call("PUT", {id:"OLD",row:{planning_entrainement_json:"[]"}})).status,200)
+})
+
+test("Sheets failures never report successful localisation creation or modification", async () => {
+  const f = localisationFixture()
+  f.failWrite()
+  const failed = await f.call("POST", {row:{lieu_entrainement:"Failure"}})
+  assert.equal(failed.status,502); assert.equal((await failed.json()).ok,undefined)
+  assert.equal(f.matrices.get("LOCALISATION")!.length,1)
+  const row = (await (await f.call("POST", {row:{lieu_entrainement:"Saved"}})).json()).row
+  const before = structuredClone(f.matrices.get("LOCALISATION"))
+  f.failWrite()
+  assert.equal((await f.call("PUT",{id:row.id_localisation,row:{statut:"INACTIF"}})).status,502)
+  assert.deepEqual(f.matrices.get("LOCALISATION"),before)
+})
+
+test("localisation headers stay exactly A:H and the fresh writer rechecks ownership", async () => {
+  const headers = [...CNAC_HEADERS.LOCALISATION]
+  assert.throws(() => parseTable("LOCALISATION", [[headers[1],headers[0],...headers.slice(2)]]), /A:H/)
+  const f = localisationFixture()
+  const row: SheetRecord = { id_localisation:"L1",id_athlete_cnac:"A2",lieu_entrainement:"Other owner",statut:"ACTIF" }
+  f.matrices.get("LOCALISATION")!.push(headers.map(key=>row[key]||""))
+  const { updateSheetCells } = f.load(resolve(root,"lib/cnac/sheets.ts")) as { updateSheetCells: (input: unknown) => Promise<void> }
+  await assert.rejects(() => updateSheetCells({sheetName:"LOCALISATION",spreadsheetId:"actors-fixture",idColumn:"id_localisation",idValue:"L1",expectedValues:{id_athlete_cnac:"A1"},updates:[{column:"observations",value:"Forbidden"}]}), /changé/)
+  assert.equal(f.updates.length,0)
+})
+
 test("athlete localisation inherits the place and weekday hours loaded from its team sheet", async () => {
   const f = fixture()
   const team: SheetRecord = {
