@@ -19,16 +19,23 @@ function client(write=false) {
 const range = (name:string) => `'${name.replaceAll("'","''")}'!${name === "ATHLETES" ? "A:S" : name === "EQUIPES" ? "A:O" : "A:AZ"}`
 export function clearSheetCache() { store.generation++;store.cache.clear();store.pending.clear() }
 
-async function tables(params: Params): Promise<Record<string,SheetTable>> {
-  params.sheetNames.forEach(name => cnacWorkbook(name,params.spreadsheetId))
+async function tables(request: Params): Promise<Record<string,SheetTable>> {
+  request.sheetNames.forEach(name => cnacWorkbook(name,request.spreadsheetId))
   cnacCredentials()
-  const key = `${params.spreadsheetId}:${[...params.sheetNames].sort().join(",")}`
-  const cached = Object.fromEntries(params.sheetNames.map(name=>[name,store.cache.get(`${params.spreadsheetId}:${name}`)]))
-  if (!params.bypassCache && params.sheetNames.every(name=>cached[name] && Date.now()-cached[name]!.at < (params.cacheTtlMs ?? ttl()))) return Object.fromEntries(params.sheetNames.map(name=>[name,structuredClone(cached[name]!.table)]))
-  const pending = store.pending.get(key)
-  if(pending && !params.bypassCache)return structuredClone(await pending)
+  const result: Record<string,SheetTable> = {}
+  const waiting = new Set<Promise<Record<string,SheetTable>>>()
+  const missing: string[] = []
+  for (const name of new Set(request.sheetNames)) {
+    const key = `${request.spreadsheetId}:${name}`
+    const cached = store.cache.get(key)
+    const pending = store.pending.get(key)
+    if (!request.bypassCache && cached && Date.now()-cached.at < (request.cacheTtlMs ?? ttl())) result[name] = cached.table
+    else if (!request.bypassCache && pending) waiting.add(pending)
+    else missing.push(name)
+  }
+  const params = { ...request, sheetNames: missing }
   const generation=store.generation
-  const task=(async()=>{
+  const task=missing.length ? (async()=>{
     try {
       const api=client()
       // Valeurs formatées : identifiants « 01 », téléphones et dates civiles du classeur.
@@ -48,9 +55,20 @@ async function tables(params: Params): Promise<Record<string,SheetTable>> {
       params.sheetNames.forEach((name,index)=>{const table=parseTable(name as CnacSheet,matrices[index]);result[name]=table;if(generation===store.generation)store.cache.set(`${params.spreadsheetId}:${name}`,{table,at:Date.now()})})
       return result
     } catch(error) { const failure=cnacError(error); console.error(`[CNAC Sheets] ${failure.code}: ${failure.message} (${params.sheetNames.join(", ")})`);throw failure }
-  })()
-  store.pending.set(key,task)
-  try{return structuredClone(await task)}finally{if(store.pending.get(key)===task)store.pending.delete(key)}
+  })() : undefined
+  if (task) {
+    waiting.add(task)
+    if (!request.bypassCache) missing.forEach(name => store.pending.set(`${request.spreadsheetId}:${name}`,task))
+  }
+  try {
+    for (const loaded of await Promise.all(waiting)) Object.assign(result, loaded)
+    return structuredClone(Object.fromEntries(request.sheetNames.map(name => [name, result[name]])))
+  } finally {
+    if (task) missing.forEach(name => {
+      const key = `${request.spreadsheetId}:${name}`
+      if (store.pending.get(key) === task) store.pending.delete(key)
+    })
+  }
 }
 
 export async function getSheetsRows(params: Params): Promise<Record<string,Record<string,string>[]>> {

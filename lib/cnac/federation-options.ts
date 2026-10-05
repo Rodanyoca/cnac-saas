@@ -15,7 +15,7 @@ export async function getFederationOptions(options: { fresh?: boolean } = {}): P
   const rows = await getSheetsRows({
     sheetNames: ["FEDERATIONS", "ENTITES"],
     spreadsheetId: getReferentialSpreadsheetId(),
-    cacheTtlMs: 5000,
+    cacheTtlMs: 60000,
     bypassCache: options.fresh,
   })
   const entities = new Map(rows.ENTITES.map((row) => [row.id_entite, row]))

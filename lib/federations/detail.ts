@@ -16,7 +16,7 @@ export async function loadFederationDetail(id: string): Promise<FederationDetail
   const referential = await getSheetsRows({
       sheetNames: ["FEDERATIONS", "ENTITES", "SPORTS", "CATEGORIES_ENTITES"],
       spreadsheetId: getReferentialSpreadsheetId(),
-      cacheTtlMs: 5000,
+      cacheTtlMs: 60000,
     })
   const source = referential.FEDERATIONS.map(mapFederationRow).find((item) => item.id_federation === id)
   if (!source) return undefined

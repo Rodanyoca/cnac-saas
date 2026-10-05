@@ -8,9 +8,9 @@ import { CONTACT_ACTOR_TYPES, ENTITY_CONTACT_SHEET, normalizeContactInput, valid
 
 const actorSheets = Object.values(CONTACT_ACTOR_TYPES).map((item) => item.sheet)
 
-async function sources() {
+async function sources(fresh = false) {
   const [contacts, refs, actors] = await Promise.all([
-    getSheetRows({ sheetName: ENTITY_CONTACT_SHEET, spreadsheetId: getTerritorialSpreadsheetId(), bypassCache: true }),
+    getSheetRows({ sheetName: ENTITY_CONTACT_SHEET, spreadsheetId: getTerritorialSpreadsheetId(), bypassCache: fresh, cacheTtlMs: 60000 }),
     getSheetsRows({ sheetNames: ["ENTITES", "FEDERATIONS", "TYPES_ACTEURS"], spreadsheetId: getReferentialSpreadsheetId() }),
     getSheetsRows({ sheetNames: actorSheets, spreadsheetId: getActeursSpreadsheetId() }),
   ])
@@ -43,7 +43,7 @@ export async function getEntityContactData(entityId: string) {
 }
 
 async function validate(input: Record<string, unknown>, currentId = "") {
-  const row = normalizeContactInput(input), data = await sources()
+  const row = normalizeContactInput(input), data = await sources(true)
   try { validateContactRules(row, data.contacts, currentId) } catch (error) {
     throw new CnacDataError("CONTACT_INVALID", error instanceof Error ? error.message : "Contact invalide.", 400)
   }

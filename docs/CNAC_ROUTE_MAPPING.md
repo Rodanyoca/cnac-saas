@@ -1,5 +1,9 @@
 # Cartographie COC → CNAC
 
+## Réduction des appels Sheets — 5 octobre 2026
+
+Le cache CNAC réutilise chaque feuille valide et ne demande que les feuilles manquantes. Les lectures simultanées de groupes différents partagent les requêtes en cours pour leurs feuilles communes. Les consultations de fédérations, détails, options et structures utilisent un cache de 60 secondes, contre 5 secondes auparavant. Les contacts utilisent le cache à l'affichage et une lecture fraîche pour leur validation avant écriture. Les écritures continuent à relire leurs positions physiques et à invalider le cache. Ce cache mémoire reste propre à chaque instance serveur ; il n'est pas partagé entre les instances Vercel.
+
 ## Chargement territorial — 5 octobre 2026
 
 La fiche Fédération et les écritures territoriales ne chargent plus DIVISIONS ni CATEGORIES_CLUB. TYPES_STRUCTURE ne requiert plus division_applicable. Le formulaire Club retire sa catégorie ; les anciens champs de catégorie de club sont ignorés à l'enregistrement et id_categorie_club est facultatif à la lecture. Les équipes conservent la catégorie d'âge. Aucun classeur réel ni en-tête Google n'a été modifié.

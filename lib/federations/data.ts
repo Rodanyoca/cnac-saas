@@ -7,7 +7,7 @@ import { REFERENTIAL_SHEETS, TERRITORIAL_RESOURCES } from "./schema"
 import type { FederationData } from "./types"
 
 export async function loadFederations() {
-  const referential = await getSheetsRows({ sheetNames: ["ENTITES", "SPORTS", "FEDERATIONS", "CATEGORIES_ENTITES"], spreadsheetId: getReferentialSpreadsheetId(), cacheTtlMs: 5000 })
+  const referential = await getSheetsRows({ sheetNames: ["ENTITES", "SPORTS", "FEDERATIONS", "CATEGORIES_ENTITES"], spreadsheetId: getReferentialSpreadsheetId(), cacheTtlMs: 60000 })
   const entities = new Map(referential.ENTITES.map(mapEntiteRow).map((item) => [item.id_entite, item]))
   const sports = new Map(referential.SPORTS.map(mapSportRow).map((item) => [item.id_sport, item]))
   const entityCategories = new Map(referential.CATEGORIES_ENTITES.map((item) => [item.id_categorie_entite, item.nom_categorie_entite]))
@@ -21,8 +21,8 @@ export async function loadFederations() {
 export async function loadFederationData(options: { connected?: boolean } = {}): Promise<FederationData> {
   const readRows = options.connected ? getSheetsRows : isolatedRows
   const [referential, rawTerritorial] = await Promise.all([
-    readRows({ sheetNames: Object.values(REFERENTIAL_SHEETS), spreadsheetId: getReferentialSpreadsheetId(), cacheTtlMs: 5000 }),
-    readRows({ sheetNames: [...new Set([...Object.values(TERRITORIAL_RESOURCES).map((item) => item.sheet), "CERCLES", "EQUIPES"])], spreadsheetId: getTerritorialSpreadsheetId(), cacheTtlMs: 5000 }),
+    readRows({ sheetNames: Object.values(REFERENTIAL_SHEETS), spreadsheetId: getReferentialSpreadsheetId(), cacheTtlMs: 60000 }),
+    readRows({ sheetNames: [...new Set([...Object.values(TERRITORIAL_RESOURCES).map((item) => item.sheet), "CERCLES", "EQUIPES"])], spreadsheetId: getTerritorialSpreadsheetId(), cacheTtlMs: 60000 }),
   ])
   const territorial = resolveTerritorialRows(rawTerritorial)
   const entities = new Map(referential.ENTITES.map(mapEntiteRow).map((item) => [item.id_entite, item]))

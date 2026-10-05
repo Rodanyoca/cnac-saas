@@ -6,7 +6,7 @@ test("les vues Fédérations limitent explicitement la durée de leurs données 
   const source = await readFile(new URL("../../lib/federations/data.ts", import.meta.url), "utf8")
   const ttlValues = [...source.matchAll(/(?:getSheetsRows|readRows)\(\{[^}]*cacheTtlMs:\s*(\d+)/g)].map((match) => Number(match[1]))
   assert.ok(ttlValues.length >= 3, "chaque lecture Fédérations doit fixer sa fraîcheur")
-  assert.ok(ttlValues.every((value) => value <= 5000), `TTL trop long : ${ttlValues.join(", ") || "absent"}`)
+  assert.ok(ttlValues.every((value) => value <= 60000), `TTL trop long : ${ttlValues.join(", ") || "absent"}`)
 })
 
 test("le cache groupé accepte une durée propre au consommateur", async () => {
