@@ -62,6 +62,7 @@ test("les périmètres officiels utilisent exactement le bon bloc", () => {
 
 test("toutes les routes protégées actuellement exposées appartiennent à la matrice", () => {
   const pages = [
+    "/dashboard/antidopage", "/dashboard/antidopage/controles", "/dashboard/antidopage/aut", "/dashboard/antidopage/sanctions",
     "/dashboard", "/dashboard/acteurs", "/dashboard/acteurs/arbitres", "/dashboard/acteurs/arbitres/ARB-1",
     "/dashboard/acteurs/athletes", "/dashboard/acteurs/athletes/ATH-1", "/dashboard/acteurs/entraineurs",
     "/dashboard/acteurs/entraineurs/COA-1", "/dashboard/acteurs/medecins", "/dashboard/acteurs/medecins/MED-1",

@@ -5,6 +5,7 @@ import { Loader2, Pencil, Plus, RotateCcw, Power } from "lucide-react"
 import { apiFetch } from "@/lib/api/client"
 import { localisationPatch, type AthleteLocalisation } from "@/lib/cnac/localisation-model"
 import { AthleteTeamTraining, TeamTrainingSummary } from "./team-training-summary"
+import { AthleteClubCoaches } from "./athlete-club-coaches"
 import { TeamTrainingFields } from "./team-training-fields"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -74,6 +75,7 @@ export function AthleteLocalisation({ athleteId, teams, affiliation }: Props) {
   const inactive = rows.filter(row => row.statut === "INACTIF")
   const visible = showInactive ? [...active, ...inactive] : active
   return <div className="min-w-0 space-y-6">
+    <AthleteClubCoaches key={affiliation.id_club_cnac || "no-club"} athleteId={athleteId} clubId={affiliation.id_club_cnac} />
     <section className="space-y-3" aria-labelledby="team-training-heading">
       <div className="flex flex-wrap items-center gap-2"><h3 id="team-training-heading" className="text-base font-semibold">Entraînements de l’équipe</h3><Badge variant="secondary">Équipe</Badge></div>
       <AthleteTeamTraining teams={teams} affiliation={affiliation} />

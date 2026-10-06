@@ -1,2 +1,5 @@
-import {redirect} from "next/navigation"
-export default function NouvelleCompetitionPage(){redirect("/dashboard/competitions?nouveau=1")}
+import { ComingSoon } from "@/components/dashboard/coming-soon"
+
+export default function Page() {
+  return <ComingSoon title="Compétitions" icon="competitions" />
+}

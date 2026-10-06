@@ -4,7 +4,8 @@ import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Activity, BadgeCheck, Building2, Calendar, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, FileText, Flag, Globe2, Landmark, LayoutDashboard, MapPin, Shield, Stethoscope, Trophy, UserCog, Users, X, type LucideIcon } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { NAVIGATION_SNAPSHOT_KEY, navigationSnapshot } from "@/lib/navigation/navigation-snapshot"
 import { dashboardNavigation, visibleDashboardNavigation, type DashboardNavigationItem } from "@/lib/navigation/dashboard-navigation"
 import { dashboardSections } from "@/lib/navigation/dashboard-presentation"
 import { cn } from "@/lib/utils"
@@ -20,15 +21,27 @@ const routeIcons: Record<string, LucideIcon> = {
 }
 const focusStyle = "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
 
-export function Sidebar({ initialAccess, initialIsSuperAdmin }: { initialAccess: Record<string, boolean>; initialIsSuperAdmin: boolean }) {
+const subscribeSnapshot = (onChange: () => void) => { window.addEventListener("storage", onChange); return () => window.removeEventListener("storage", onChange) }
+const readSnapshot = () => { try { return sessionStorage.getItem(NAVIGATION_SNAPSHOT_KEY) || "" } catch { return "" } }
+const emptySnapshot = () => ""
+
+export function Sidebar({ initialAccess, initialIsSuperAdmin, unavailable = false }: { initialAccess: Record<string, boolean>; initialIsSuperAdmin: boolean; unavailable?: boolean }) {
   const pathname = usePathname()
   const navigation = useDashboardNavigation()
   const collapsed = navigation?.collapsed || false, mobileOpen = navigation?.mobileOpen || false
   const closeMobile = navigation?.closeMobile
   const aside = useRef<HTMLElement>(null)
-  const [expanded, setExpanded] = useState<string[]>(["Acteurs", "Structure territoriale", "Compétitions", "Competition", "Equipe nationale", "Administration"])
-  const readableBlocks = ["AUT-ADM", "AUT-SPT", "AUT-COM"].filter(block => initialAccess[`${block}:READ`] === true)
-  const visible = visibleDashboardNavigation(dashboardNavigation, { isSuperAdmin: initialIsSuperAdmin, readableBlocks })
+  const [expanded, setExpanded] = useState<string[]>(["Acteurs", "Antidopage", "Structure territoriale", "Compétitions", "Competition", "Equipe nationale", "Administration"])
+  const snapshotValue = useSyncExternalStore(subscribeSnapshot, readSnapshot, emptySnapshot)
+  const snapshot = unavailable ? navigationSnapshot(snapshotValue) : null
+  const shownAccess = snapshot?.access || initialAccess
+  const readableBlocks = ["AUT-ADM", "AUT-SPT", "AUT-COM"].filter(block => shownAccess[`${block}:READ`] === true)
+  const permittedNavigation = visibleDashboardNavigation(dashboardNavigation, { isSuperAdmin: snapshot?.isSuperAdmin ?? initialIsSuperAdmin, readableBlocks })
+  const visible = unavailable && !permittedNavigation.length ? [dashboardNavigation[0]] : permittedNavigation
+  useEffect(() => {
+    if (unavailable) return
+    try { sessionStorage.setItem(NAVIGATION_SNAPSHOT_KEY, JSON.stringify({ access: initialAccess, isSuperAdmin: initialIsSuperAdmin })) } catch { /* La navigation reste disponible sans stockage navigateur. */ }
+  }, [initialAccess, initialIsSuperAdmin, unavailable])
   const toggle = (name: string) => setExpanded(current => current.includes(name) ? current.filter(item => item !== name) : [...current, name])
   const isActive = (href?: string) => Boolean(href && (href === "/dashboard" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`)))
 

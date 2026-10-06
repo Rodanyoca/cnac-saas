@@ -39,6 +39,7 @@ function App(){const[team,setTeam]=useState('T1');window.changeTeam=setTeam;retu
     const errors = []
     page.on("pageerror", error => errors.push(error.message))
     let rows = [], canWrite = true, failWrite = false, seq = 0
+    await page.route("**/api/athletes/A1/club-coachs", route=>route.fulfill({json:{coaches:[{id:"COA1",nom:"Coach du club"}]}}))
     await page.route("**/api/athletes/A1/localisations", async route => {
       const request = route.request()
       if (request.method() === "GET") return route.fulfill({json:{localisations:rows,canWrite}})
@@ -51,6 +52,8 @@ function App(){const[team,setTeam]=useState('T1');window.changeTeam=setTeam;retu
     })
     const url = `http://127.0.0.1:${server.address().port}`
     await page.goto(url)
+    await page.getByRole("heading",{name:"Entraîneurs du club",exact:true}).waitFor()
+    await page.getByText("Coach du club",{exact:true}).waitFor()
     await page.getByText("Aucun lieu d’entraînement individuel renseigné.",{exact:true}).waitFor()
     await page.getByRole("button",{name:"Ajouter un lieu d’entraînement",exact:true}).click()
     await page.getByRole("button",{name:"Enregistrer",exact:true}).click()

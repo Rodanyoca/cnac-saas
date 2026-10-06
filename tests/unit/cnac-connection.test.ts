@@ -72,6 +72,14 @@ test("Service account configuration is mandatory and private key escaped lines s
   assert.throws(()=>cnacWorkbook("USERS","users",{}),/autorisés/)
   assert.throws(()=>cnacWorkbook("ATHLETES","wrong",{GOOGLE_SHEETS_ACTEURS_SPREADSHEET_ID:"actors"}),/classeur/)
 })
+test("coach affiliations require the dedicated workbook without referential fallback",()=>{
+  const env = {GOOGLE_SHEETS_REFERENTIEL_SPREADSHEET_ID:"refs",GOOGLE_SHEETS_ACTEURS_AFFILIATIONS_SPREADSHEET_ID:"affiliations"}
+  assert.equal(cnacWorkbook("AFFILIATIONS_COACHS","affiliations",env),"AFFILIATIONS_COACHS")
+  assert.throws(()=>cnacWorkbook("AFFILIATIONS_COACHS","refs",env),/classeur/)
+  assert.throws(()=>cnacWorkbook("AFFILIATIONS_COACHS","refs",{GOOGLE_SHEETS_REFERENTIEL_SPREADSHEET_ID:"refs"}),/GOOGLE_SHEETS_ACTEURS_AFFILIATIONS_SPREADSHEET_ID/)
+  assert.equal(cnacWorkbook("SEXES","refs",env),"SEXES")
+})
+
 test("Permission, quota and source failures receive different safe diagnoses",()=>{
   assert.equal(cnacError({response:{status:403}}).code,"GOOGLE_PERMISSION");assert.equal(cnacError({response:{status:429}}).status,429)
   assert.equal(cnacError(new Error("PRIVATE_SECRET_MUST_NOT_LEAK")).message.includes("PRIVATE_SECRET"),false)

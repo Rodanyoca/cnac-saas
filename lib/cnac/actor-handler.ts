@@ -1,4 +1,5 @@
 import { loadAffiliationReferences } from "./affiliation-data"
+import { prepareCoachAffiliations, commitCoachAffiliations } from "./coach-affiliations-service"
 import "server-only"
 import { revalidatePath } from "next/cache"
 import { NextResponse } from "next/server"
@@ -26,6 +27,7 @@ export async function actorRead(kind:ActorKind) {
   }catch(error){return errorResponse(error)}
 }
 export async function actorWrite(kind:ActorKind,request:Request,method:"POST"|"PUT") {
+  if (kind === "entraineurs") return withCnacCreationQueue("coach-affiliations", () => actorWriteRecord(kind, request, method))
   if (kind === "athletes" && request.headers.get("content-type")?.includes("multipart/form-data")) return withCnacCreationQueue("media:ATHLETES", () => actorWriteRecord(kind, request, method))
   if(method==="POST")return withCnacCreationQueue(`actor:${kind}`,()=>actorWriteRecord(kind,request,method))
   return actorWriteRecord(kind,request,method)
@@ -52,7 +54,7 @@ async function actorWriteRecord(kind:ActorKind,request:Request,method:"POST"|"PU
       revalidatePath("/dashboard/acteurs/athletes"); revalidatePath(`/dashboard/acteurs/athletes/${row.id_athlete_cnac}`)
       return NextResponse.json({ ok: true, row: { ...row, avatar_drive_url: cnacMediaUrl("avatar", row.id_athlete_cnac, row.avatar_drive_id || ""), id_athlete_coc: row.id_athlete_cnac } })
     }
-    let body:{id?:unknown;row?:Record<string,unknown>}
+    let body:{id?:unknown;row?:Record<string,unknown>;affiliations?:unknown}
     try{body=await request.json()}catch{throw new CnacDataError("INVALID_BODY","Corps JSON invalide.")}
     if(!body.row || typeof body.row!=="object" || Array.isArray(body.row))throw new CnacDataError("INVALID_BODY","La fiche à enregistrer est obligatoire.")
     const config=ACTOR_CONFIGS[kind],idColumn=CNAC_KEYS[config.sheet],spreadsheetId=getActeursSpreadsheetId()
@@ -62,9 +64,15 @@ async function actorWriteRecord(kind:ActorKind,request:Request,method:"POST"|"PU
     if(kind === "athletes") Object.assign(refs, await loadAffiliationReferences())
     const patch=actorPatch(kind,body.row,current,refs,existing)
     const createdId=method==="POST"?nextCompactCnacId(config.prefix,recordIds(existing,idColumn)):id
+    const coachDrafts = kind === "entraineurs" ? await prepareCoachAffiliations({...current,...patch,id_coach_cnac:createdId},body.affiliations) : []
     if(method==="POST")await appendSheetRow({sheetName:config.sheet,spreadsheetId,row:{...patch,[idColumn]:createdId,statut:patch.statut||"ACTIF"}})
     else await updateSheetCells({sheetName:config.sheet,spreadsheetId,idColumn,idValue:id,updates:Object.entries(patch).map(([column,value])=>({column,value}))})
     revalidatePath(`/dashboard/acteurs/${kind}`);revalidatePath(`/dashboard/acteurs/${kind}/${createdId}`)
+    if (kind === "entraineurs") {
+      try { await commitCoachAffiliations(createdId,coachDrafts) }
+      catch(error) { revalidatePath("/dashboard/acteurs/athletes","layout");return NextResponse.json({ok:true,row:{...current,...patch,[idColumn]:createdId,id_coach_coc:createdId},affiliationsError:`Identité enregistrée, mais les affiliations ne sont pas toutes confirmées : ${cnacError(error).message}`}) }
+      revalidatePath("/dashboard/acteurs/athletes","layout")
+    }
     return NextResponse.json({ok:true,row:{...current,...patch,[idColumn]:createdId,[idColumn.replace("_cnac","_coc")]:createdId}})
   }catch(error){return errorResponse(error)}
 }

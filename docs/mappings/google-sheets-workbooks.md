@@ -81,7 +81,12 @@ Classeur : **02_ACTEURS**. Variable : `GOOGLE_SHEETS_ACTEURS_SPREADSHEET_ID`.
 
 ## ACTEURS_AFFILIATIONS â€” AUT-SPT
 
-Classeur : **03_ACTEURS_AFFILIATIONS**. Variable : `GOOGLE_SHEETS_ACTEURS_AFFILIATIONS_SPREADSHEET_ID`.
+Source CNAC courante (6 octobre 2026) : **03_CNAC_AFFILIATIONS**. Variable conservée : `GOOGLE_SHEETS_ACTEURS_AFFILIATIONS_SPREADSHEET_ID`. L'identifiant est configuré dans l'environnement et n'est pas versionné.
+
+- **AFFILIATIONS_COACHS** : `id_affiliation_coach`, `id_coach_cnac`, `id_club_cnac`, `statut`, `observations`. Lectures et écritures via le service CNAC, colonnes repérées par nom ; cette feuille n'appartient plus au REFERENTIEL.
+- **AFFILIATIONS_MEDECINS** : présente dans ce classeur, hors du périmètre de cette étape ; aucun service ni formulaire ajouté.
+
+Contrat hérité des officiels, non modifié dans cette étape :
 
 - **OFFICIELS_AFFILIATIONS** : `id_affiliation_officiel`, `id_officiel`, `id_fonction_officiel`, `id_entite`, `date_debut`, `date_fin`, `motif_fin`, `observation`
 
@@ -136,4 +141,3 @@ Classeur : **09_USERS**. Variable : `GOOGLE_SHEETS_USERS_SPREADSHEET_ID`.
 - `TYPES_STRUCTURE` contient deux colonnes portant le mÃªme nom `observations`; elles doivent Ãªtre fusionnÃ©es dans le classeur source.
 - Les membres d'Ã©quipes nationales sont modÃ©lisÃ©s par campagnes (`SELECTIONS_ATHLETES` et `AFFECTATIONS_STAFF`), et non par un onglet gÃ©nÃ©rique.
 - Les colonnes physiques au singulier (`observation`) sont adaptÃ©es vers `observations` dans le modÃ¨le d'interface.
-

@@ -1,0 +1,27 @@
+import { DashboardRefreshButton } from "./dashboard-refresh-button"
+import { DashboardSection, StatGrid, StatValue, AnalyticsTable } from "./analytics"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import type { CnacDashboardMetrics } from "@/lib/dashboard/cnac-metrics"
+
+export function CnacDashboardOverview({ metrics: m, unavailable, canRefresh, loadedAt }: { metrics: CnacDashboardMetrics; unavailable: string[]; canRefresh: boolean; loadedAt: string }) {
+  const time = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "medium", timeZone: "Africa/Kinshasa" }).format(new Date(loadedAt))
+  return <main className="min-w-0 space-y-8 p-4 md:p-6">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4"><p className="text-sm text-muted-foreground">Données chargées le <time dateTime={loadedAt} className="font-medium text-foreground">{time}</time></p>{canRefresh && <DashboardRefreshButton />}</div>
+    {unavailable.length > 0 && <Alert role="alert"><AlertDescription>Sources indisponibles : {unavailable.join(", ")}. Les indicateurs disponibles restent affichés.</AlertDescription></Alert>}
+    <DashboardSection title="Synthèse générale"><StatGrid>
+      <StatValue label="Fédérations" value={m.totalFederations} detail="Fédérations enregistrées" />
+      <StatValue label="Structures territoriales" value={m.totalStructures} detail="Zones, ligues, ententes, cercles, clubs et équipes" />
+      <StatValue label="Acteurs enregistrés" value={m.totalActors} detail="Les six familles d’acteurs CNAC" />
+      <StatValue label="Complétude des acteurs" value={m.actorCompletionRate === undefined ? undefined : `${m.actorCompletionRate} %`} detail={m.completeActors === undefined ? undefined : `${m.completeActors} fiches complètes sur ${m.totalActors}`} />
+      <StatValue label="Affiliations entraîneur–club" value={m.affiliationStats?.total} detail={m.affiliationStats ? `${m.affiliationStats.active} actives · ${m.affiliationStats.inactive} inactives` : undefined} />
+      <StatValue label="Acteurs actifs" value={m.actorRows?.reduce((sum, row) => sum + row.active, 0)} />
+      <StatValue label="Clubs" value={m.territorialRows?.find(row => row.label === "Clubs")?.total} />
+      <StatValue label="Équipes de clubs" value={m.territorialRows?.find(row => row.label === "Équipes")?.total} />
+    </StatGrid></DashboardSection>
+    {m.federationRows && <DashboardSection title="Référentiel des fédérations"><AnalyticsTable rows={m.federationRows} columns={[{ key: "label", label: "Indicateur" }, { key: "status", label: "Statut" }, { key: "total", label: "Effectif", align: "right" }, { key: "share", label: "Part", align: "right" }]} /></DashboardSection>}
+    {m.territorialRows && <DashboardSection title="Référentiel territorial" description="État des structures enregistrées dans CNAC."><AnalyticsTable rows={m.territorialRows} columns={[{ key: "label", label: "Niveau territorial" }, { key: "total", label: "Total", align: "right" }, { key: "active", label: "Actif", align: "right" }, { key: "inactive", label: "Inactif", align: "right" }, { key: "unknown", label: "Autres statuts / non renseigné", align: "right" }, { key: "share", label: "Part du total", align: "right" }]} /></DashboardSection>}
+    {m.actorRows && <DashboardSection title="Référentiel des acteurs"><AnalyticsTable rows={m.actorRows} columns={[{ key: "label", label: "Type d’acteur" }, { key: "total", label: "Total", align: "right" }, { key: "men", label: "Hommes", align: "right" }, { key: "women", label: "Femmes", align: "right" }, { key: "genderUnknown", label: "Sexe non renseigné / autre", align: "right" }, { key: "active", label: "Actifs", align: "right" }, { key: "inactive", label: "Inactifs", align: "right" }, { key: "unknown", label: "Autres statuts / non renseigné", align: "right" }]} /></DashboardSection>}
+    {m.affiliationStats && <DashboardSection title="Affiliations entraîneur–club" description="Rattachements aux clubs, sans dates ni chronologie."><StatGrid><StatValue label="Affiliations" value={m.affiliationStats.total} /><StatValue label="Actives" value={m.affiliationStats.active} /><StatValue label="Inactives" value={m.affiliationStats.inactive} /><StatValue label="Autres statuts / non renseigné" value={m.affiliationStats.unknown} /></StatGrid></DashboardSection>}
+    {m.qualityRows.length > 0 && <DashboardSection title="Qualité des données" description="Acteurs : nom, sexe, date de naissance, téléphone, e-mail et statut. Structures : nom et statut. Affiliations : entraîneur, club et statut."><h3 className="text-base font-medium">Complétude par bloc</h3><AnalyticsTable rows={m.qualityRows} columns={[{ key: "label", label: "Bloc métier" }, { key: "total", label: "Fiches", align: "right" }, { key: "complete", label: "Complètes", align: "right" }, { key: "incomplete", label: "Incomplètes", align: "right" }, { key: "rate", label: "Taux", align: "right", render: row => <span className={row.incomplete ? "text-amber-600" : "text-emerald-600"}>{row.rate}</span> }]} />{m.alertRows.length > 0 && <><h3 className="pt-2 text-base font-medium">Points d’attention</h3><AnalyticsTable rows={m.alertRows} columns={[{ key: "label", label: "Point d’attention" }, { key: "count", label: "Nombre", align: "right", render: row => <span className={row.count ? "text-amber-600" : "text-emerald-600"}>{row.count}</span> }]} /></>}</DashboardSection>}
+  </main>
+}

@@ -27,6 +27,7 @@ export const ROUTE_RULES: readonly Rule[] = [
   { id: "page-communication", pattern: /^\/dashboard\/(?:articles|galeries|partenaires|contenus-web)(?:\/.*)?$/, requirement: COM },
   { id: "page-site-web", pattern: /^\/dashboard\/site-web(?:\/(?:sliders|communiques|actualites|galeries|historique|gouvernance|jeux|athletes|entites|evenements|documents)(?:\/.*)?)?$/, requirement: COM },
   { id: "page-dashboard", pattern: /^\/dashboard$/, requirement: ANY_BUSINESS },
+  { id: "page-antidopage-placeholder", pattern: /^\/dashboard\/antidopage(?:\/(?:controles|aut|sanctions))?$/, requirement: ANY_BUSINESS, action: "READ" },
   { id: "api-super-admin", pattern: /^\/api\/(?:users|authorizations|autorisations|referentiels)(?:\/.*)?$/, requirement: SUPER_ADMIN },
   { id: "api-dashboard-refresh", methods: ["POST"], pattern: /^\/api\/dashboard\/refresh$/, requirement: ANY_BUSINESS, action: "WRITE" },
   { id: "api-administration", pattern: /^\/api\/(?:activites|documents)(?:\/.*)?$/, requirement: ADM },

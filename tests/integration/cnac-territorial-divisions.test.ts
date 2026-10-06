@@ -14,6 +14,7 @@ import { parseTable, type SheetRecord } from "../../lib/cnac/model.ts"
 import { mapEntenteRow, mapTypeStructureRow, mapZoneRow } from "../../lib/federations/mappers.ts"
 import { territorialEditorRow } from "../../lib/cnac/territorial-model.ts"
 import { teamCategory } from "../../lib/cnac/affiliation-model.ts"
+import { cnacWorkbook } from "../../lib/cnac/config.ts"
 
 const root = fileURLToPath(new URL("../../", import.meta.url))
 const require = createRequire(import.meta.url)
@@ -23,13 +24,114 @@ function localisationFixture() {
   let read = true, write = true
   const f = fixture({
     [resolve(root, "lib/auth.ts")]: { canAccess: async (_block: string, action: string) => action === "WRITE" ? write : read },
-    [resolve(root, "lib/acteurs/config.ts")]: { getActeursSpreadsheetId: () => "actors-fixture" },
+    [resolve(root, "lib/acteurs/config.ts")]: { getActeursSpreadsheetId: () => "actors-fixture", getActeursAffiliationsSpreadsheetId: () => "affiliations-fixture" },
   })
   for (const id of ["A1", "A2"]) f.matrices.get("ATHLETES")!.push(CNAC_HEADERS.ATHLETES.map(key => key === "id_athlete_cnac" ? id : ""))
   const route = f.load(resolve(root, "app/api/athletes/[id]/localisations/route.ts")) as Record<string, (request: Request, context: { params: Promise<{id:string}> }) => Promise<Response>>
   const call = (method: string, body?: unknown, id = "A1") => route[method](body ? request(body) : new Request("http://fixture.invalid/api"), { params: Promise.resolve({id}) })
   return { ...f, call, permissions: (r: boolean, w: boolean) => { read = r; write = w } }
 }
+
+test("affiliation cache uses the dedicated workbook and invalidates after a status update", async () => {
+  const env = {GOOGLE_SHEETS_ACTEURS_AFFILIATIONS_SPREADSHEET_ID:"affiliations-fixture",GOOGLE_SHEETS_REFERENTIEL_SPREADSHEET_ID:"refs-fixture"}
+  const f = fixture({[resolve(root,"lib/cnac/config.ts")]: {
+    cnacCredentials:()=>({email:"fixture@example.invalid",key:"fixture"}),
+    cnacWorkbook:(sheet:string,id:string)=>cnacWorkbook(sheet,id,env),
+  }})
+  const headers = [...CNAC_HEADERS.AFFILIATIONS_COACHS].reverse()
+  const row:SheetRecord = {id_affiliation_coach:"AFF1",id_coach_cnac:"COACH1",id_club_cnac:"C1",statut:"ACTIF",observations:"Note"}
+  f.matrices.set("AFFILIATIONS_COACHS",[headers,headers.map(key=>row[key])])
+  const sheets = f.load(resolve(root,"lib/cnac/sheets.ts")) as {
+    getSheetRows:(params:{sheetName:string;spreadsheetId:string})=>Promise<SheetRecord[]>;
+    updateSheetCells:(params:{sheetName:string;spreadsheetId:string;idColumn:string;idValue:string;updates:{column:string;value:string}[]})=>Promise<unknown>;
+  }
+  const params={sheetName:"AFFILIATIONS_COACHS",spreadsheetId:"affiliations-fixture"}
+  assert.equal((await sheets.getSheetRows(params))[0].statut,"ACTIF")
+  const reads=f.reads.length
+  await sheets.getSheetRows(params)
+  assert.equal(f.reads.length,reads)
+  await assert.rejects(sheets.getSheetRows({...params,spreadsheetId:"refs-fixture"}),/classeur/)
+  assert.equal(f.reads.length,reads)
+  await sheets.updateSheetCells({...params,idColumn:"id_affiliation_coach",idValue:"AFF1",updates:[{column:"statut",value:"INACTIF"}]})
+  assert.equal((await sheets.getSheetRows(params))[0].statut,"INACTIF")
+  assert.equal(f.matrices.get("AFFILIATIONS_COACHS")!.length,2)
+})
+
+test("coach club affiliations save by header name, round-trip statuses and populate athlete localisation without duplicates", async () => {
+  const f = fixture({}, {NODE_ENV:"test"}, true)
+  const add=(sheet:CnacSheet,row:SheetRecord)=>f.matrices.get(sheet)!.push(f.matrices.get(sheet)![0].map(key=>row[String(key)]||""))
+  // Colonnes réordonnées pour exercer les vrais mappings et écritures par nom.
+  f.matrices.set("AFFILIATIONS_COACHS",[[...CNAC_HEADERS.AFFILIATIONS_COACHS].reverse()])
+  f.matrices.set("COACHS",[[...CNAC_HEADERS.COACHS].reverse()])
+  add("SEXES",{id_sexe:"01",nom_sexe:"Masculin"})
+  add("CLUBS",{id_club_cnac:"C1",id_federation:"FED1",nom_club:"Club 1"})
+  add("CLUBS",{id_club_cnac:"C2",id_federation:"FED1",nom_club:"Club 2"})
+  add("CLUBS",{id_club_cnac:"FOREIGN",id_federation:"OTHER",nom_club:"Autre fédération"})
+  const {actorWrite}=f.load(resolve(root,"lib/cnac/actor-handler.ts")) as {actorWrite:(kind:string,request:Request,method:"POST"|"PUT")=>Promise<Response>}
+  const draft={id_club_cnac:"C1",statut:"ACTIF",observations:"Observation conservée"}
+  const create=await actorWrite("entraineurs",request({row:{nom_complet:"Coach test",id_federation:"FED1",id_sexe:"01"},affiliations:[draft]}),"POST")
+  const body=await create.json();assert.equal(create.status,200,JSON.stringify(body));assert.equal(body.affiliationsError,undefined)
+  const coachId=body.row.id_coach_cnac
+  assert.equal("id_club_cnac" in body.row,false)
+  assert.equal(parseTable("COACHS",f.matrices.get("COACHS")!).rows[0].nom_complet,"Coach test")
+  const saved=()=>parseTable("AFFILIATIONS_COACHS",f.matrices.get("AFFILIATIONS_COACHS")!).rows
+  assert.equal(saved().length,1);assert.equal(saved()[0].id_coach_cnac,coachId);assert.equal(saved()[0].observations,draft.observations)
+  const route=f.load(resolve(root,"app/api/coachs/affiliations/route.ts")) as {PUT:(r:Request)=>Promise<Response>;GET:(r:Request)=>Promise<Response>}
+  assert.equal((await route.PUT(request({coachId,affiliations:[draft]}))).status,200)
+  assert.equal(saved().length,1)
+  assert.equal((await route.PUT(request({coachId,affiliations:[{...draft,id_affiliation_coach:saved()[0].id_affiliation_coach,statut:"INACTIF"}]}))).status,200)
+  assert.equal(saved()[0].statut,"INACTIF");assert.equal(saved()[0].observations,draft.observations)
+  const read=await route.GET(new Request(`http://fixture.invalid/api?coachId=${coachId}`))
+  assert.equal((await read.json()).affiliations[0].nom_club,"Club 1")
+  add("ATHLETES",{id_athlete_cnac:"A1",id_federation:"FED1",id_club_cnac:"C1"})
+  const athleteRoute=f.load(resolve(root,"app/api/athletes/[id]/club-coachs/route.ts")) as {GET:(r:Request,context:{params:Promise<{id:string}>})=>Promise<Response>}
+  const coaches=async()=>(await (await athleteRoute.GET(new Request("http://fixture.invalid/api"),{params:Promise.resolve({id:"A1"})})).json()).coaches
+  assert.equal((await coaches()).length,0)
+  assert.equal((await route.PUT(request({coachId,affiliations:[draft,{id_club_cnac:"C2",statut:"ACTIF",observations:""}]}))).status,200)
+  assert.equal(saved().length,2)
+  // Une source historiquement dupliquée ne doit pas dupliquer les noms chez l'athlète.
+  add("AFFILIATIONS_COACHS",{...saved()[0],id_affiliation_coach:"DUPLICATE"})
+  assert.deepEqual((await coaches()).map((row:{id:string;nom:string})=>[row.id,row.nom]),[[coachId,"Coach test"]])
+  assert.ok(f.updates.filter(item=>item.range.startsWith("'AFFILIATIONS_COACHS'!")).every(item=>/[AB]\d+$/.test(item.range)))
+  assert.ok(f.revalidations.some(([path])=>path==="/dashboard/acteurs/athletes"))
+})
+
+test("coach affiliation writes enforce permissions, ownership, compatibility and retry partial writes safely", async () => {
+  const f=fixture({}, {NODE_ENV:"test"}, true)
+  const add=(sheet:CnacSheet,row:SheetRecord)=>f.matrices.get(sheet)!.push(CNAC_HEADERS[sheet].map(key=>row[key]||""))
+  add("COACHS",{id_coach_cnac:"CO1",id_federation:"FED1",nom_complet:"Coach 1",id_sexe:"01"})
+  add("COACHS",{id_coach_cnac:"CO2",id_federation:"FED1",nom_complet:"Coach 2",id_sexe:"01"})
+  add("CLUBS",{id_club_cnac:"C1",id_federation:"FED1",nom_club:"Club 1"})
+  add("CLUBS",{id_club_cnac:"OTHER",id_federation:"FED2",nom_club:"Autre"})
+  const route=f.load(resolve(root,"app/api/coachs/affiliations/route.ts")) as {PUT:(r:Request)=>Promise<Response>}
+  const draft={id_club_cnac:"C1",statut:"ACTIF",observations:"Garder"}
+  for(const affiliations of [[{...draft,id_club_cnac:"OTHER"}],[draft,draft],[{...draft,statut:"UNKNOWN"}],[{...draft,id_coach_cnac:"CO2"}]])assert.ok((await route.PUT(request({coachId:"CO1",affiliations}))).status>=400)
+  assert.equal(f.appends.length,0)
+  f.failWrite();assert.equal((await route.PUT(request({coachId:"CO1",affiliations:[draft]}))).status,502)
+  assert.equal((await route.PUT(request({coachId:"CO1",affiliations:[draft]}))).status,200)
+  const row=parseTable("AFFILIATIONS_COACHS",f.matrices.get("AFFILIATIONS_COACHS")!).rows[0]
+  assert.equal((await route.PUT(request({coachId:"CO2",affiliations:[{...draft,id_affiliation_coach:row.id_affiliation_coach}]}))).status,404)
+  const {actorWrite}=f.load(resolve(root,"lib/cnac/actor-handler.ts")) as {actorWrite:(kind:string,r:Request,m:"PUT")=>Promise<Response>}
+  assert.equal((await actorWrite("entraineurs",request({id:"CO1",row:{id_federation:"FED2"}}),"PUT")).status,400)
+  assert.equal((await actorWrite("entraineurs",request({id:"CO1",row:{id_club_cnac:"C1"}}),"PUT")).status,400)
+  f.deny();assert.equal((await route.PUT(request({coachId:"CO1",affiliations:[draft]}))).status,403)
+})
+
+test("a failed affiliation append reports the saved identity and retries without another coach or relation",async()=>{
+  const f=fixture({}, {NODE_ENV:"test"},true)
+  const add=(sheet:CnacSheet,row:SheetRecord)=>f.matrices.get(sheet)!.push(CNAC_HEADERS[sheet].map(key=>row[key]||""))
+  add("SEXES",{id_sexe:"01",nom_sexe:"Masculin"});add("CLUBS",{id_club_cnac:"C1",id_federation:"FED1",nom_club:"Club"})
+  const sheets=f.load(resolve(root,"lib/cnac/sheets.ts")) as {appendSheetRow:(params:{sheetName:string})=>Promise<unknown>}
+  const original=sheets.appendSheetRow;let fail=true
+  sheets.appendSheetRow=async params=>{if(params.sheetName==="AFFILIATIONS_COACHS"&&fail){fail=false;throw new Error("Google unavailable")}return original(params)}
+  const {actorWrite}=f.load(resolve(root,"lib/cnac/actor-handler.ts")) as {actorWrite:(kind:string,r:Request,m:"POST"|"PUT")=>Promise<Response>}
+  const row={nom_complet:"Coach",id_federation:"FED1",id_sexe:"01"},affiliations=[{id_club_cnac:"C1",statut:"ACTIF",observations:""}]
+  const created=await actorWrite("entraineurs",request({row,affiliations}),"POST")
+  const payload=await created.json();assert.equal(created.status,200);assert.ok(payload.affiliationsError);assert.ok(payload.row.id_coach_cnac)
+  for(let i=0;i<2;i++) {const updated=await actorWrite("entraineurs",request({id:payload.row.id_coach_cnac,row,affiliations}),"PUT");assert.equal(updated.status,200);assert.equal((await updated.json()).affiliationsError,undefined)}
+  assert.equal(parseTable("COACHS",f.matrices.get("COACHS")!).rows.length,1)
+  assert.equal(parseTable("AFFILIATIONS_COACHS",f.matrices.get("AFFILIATIONS_COACHS")!).rows.length,1)
+})
 
 test("team editor persists the displayed active default when the sheet status is empty", async () => {
   const f = fixture()
@@ -300,9 +402,19 @@ function fixture(extraMocks: Record<string, unknown> = {}, env: Record<string, s
   const reads: string[][] = [], appends: { range: string; values: unknown[][] }[] = [], updates: { range: string; values: unknown[][] }[] = []
   const revalidations: [string, string?][] = []
   let authorized = true, accessChecks = 0, failNextWrite = false
+  const workbookRequests: { spreadsheetId: string; ranges: string[] }[] = []
+  function checkWorkbook(spreadsheetId: string, ranges: string[]) {
+    workbookRequests.push({spreadsheetId, ranges})
+    for (const range of ranges) {
+      if (range.startsWith("'AFFILIATIONS_COACHS'!")) assert.equal(spreadsheetId, "affiliations-fixture")
+      if (range.startsWith("'COACHS'!")) assert.equal(spreadsheetId, "actors-fixture")
+      if (range.startsWith("'CLUBS'!")) assert.equal(spreadsheetId, "territorial-fixture")
+    }
+  }
   const transport = {
     spreadsheets: { values: {
-      async batchGet({ ranges }: { ranges: string[] }) {
+      async batchGet({ spreadsheetId, ranges }: { spreadsheetId: string; ranges: string[] }) {
+        checkWorkbook(spreadsheetId, ranges)
         reads.push(ranges)
         return { data: { valueRanges: ranges.map(range => {
           const match = range.match(/^'([^']+)'!([A-Z]+):([A-Z]+)$/)!
@@ -312,13 +424,15 @@ function fixture(extraMocks: Record<string, unknown> = {}, env: Record<string, s
           return { values: matrix.map(row => [row[index] || ""]) }
         }) } }
       },
-      async append({ range, requestBody }: { range: string; requestBody: { values: unknown[][] } }) {
+      async append({ spreadsheetId, range, requestBody }: { spreadsheetId: string; range: string; requestBody: { values: unknown[][] } }) {
+        checkWorkbook(spreadsheetId, [range])
         if (failNextWrite) { failNextWrite = false; throw new Error("Simulated Sheets failure") }
         appends.push({ range, values: structuredClone(requestBody.values) })
         matrices.get(range.match(/^'([^']+)'/)![1] as CnacSheet)!.push(...structuredClone(requestBody.values))
         return { data: {} }
       },
-      async batchUpdate({ requestBody }: { requestBody: { data: typeof updates } }) {
+      async batchUpdate({ spreadsheetId, requestBody }: { spreadsheetId: string; requestBody: { data: typeof updates } }) {
+        checkWorkbook(spreadsheetId, requestBody.data.map(item=>item.range))
         if (failNextWrite) { failNextWrite = false; throw new Error("Simulated Sheets failure") }
         updates.push(...structuredClone(requestBody.data))
         for (const cell of requestBody.data) {
@@ -348,7 +462,7 @@ function fixture(extraMocks: Record<string, unknown> = {}, env: Record<string, s
   if (realActors) {
     delete mocks[resolve(root, "lib/cnac/actor-handler.ts")]
     mocks[resolve(root, "lib/auth.ts")] = { canAccess: async () => authorized }
-    mocks[resolve(root, "lib/acteurs/config.ts")] = { getActeursSpreadsheetId: () => "actors-fixture" }
+    mocks[resolve(root, "lib/acteurs/config.ts")] = { getActeursSpreadsheetId: () => "actors-fixture", getActeursAffiliationsSpreadsheetId: () => "affiliations-fixture" }
   }
   const modules = new Map<string, { exports: Record<string, unknown> }>()
   function load(path: string): Record<string, unknown> {

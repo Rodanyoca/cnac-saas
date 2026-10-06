@@ -5,7 +5,7 @@ import { requestLogin } from "@/lib/auth/login-request"
 import Image from "next/image"
 import Link from "next/link"
 import { useRef, useState } from "react"
-import { Eye, EyeOff, LoaderCircle, LockKeyhole, Mail } from "lucide-react"
+import { Eye, EyeOff, LoaderCircle, LockKeyhole } from "lucide-react"
 
 import { normalizeLoginRedirect } from "@/lib/auth/login-redirect"
 import { Button } from "@/components/ui/button"
@@ -89,7 +89,7 @@ export default function LoginPage() {
             </div>
           </div>
           <div className={styles.heroContent}>
-            <p className={styles.eyebrow}>Autorité nationale antidopage</p>
+            <p className={styles.eyebrow}>Organisation nationale antidopage</p>
             <h1 id="institution-title">Ensemble, protégeons un sport propre en RDC.</h1>
             <p className={styles.introduction}>Une plateforme nationale dédiée à la coordination, au suivi et à l’administration de la lutte antidopage congolaise.</p>
           </div>
@@ -102,14 +102,12 @@ export default function LoginPage() {
           <div className={styles.welcome}>
             <p className={styles.panelEyebrow}>Comité National Antidopage Congolais</p>
             <h2 id="login-title">Espace institutionnel</h2>
-            <p>Connectez-vous pour accéder à la plateforme de gestion du CNAC.</p>
           </div>
 
           <form onSubmit={handleSubmit} className={styles.form} aria-busy={loading}>
             <div className={styles.field}>
               <Label htmlFor="email">Adresse e-mail</Label>
               <div className={styles.inputWrap}>
-                <Mail aria-hidden="true" />
                 <Input id="email" name="email" type="email" autoComplete="username" autoCapitalize="none" spellCheck={false} value={email} onChange={(event) => setEmail(event.target.value)} disabled={loading} aria-invalid={error === "credentials" || error === "validation"} required />
               </div>
             </div>
@@ -117,7 +115,6 @@ export default function LoginPage() {
             <div className={styles.field}>
               <Label htmlFor="password">Mot de passe</Label>
               <div className={styles.inputWrap}>
-                <LockKeyhole aria-hidden="true" />
                 <Input id="password" name="password" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} disabled={loading} aria-invalid={error === "credentials" || error === "validation"} aria-describedby={error ? "login-error" : undefined} required />
                 <button type="button" className={styles.passwordToggle} onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}>
                   {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
@@ -130,21 +127,18 @@ export default function LoginPage() {
             </div>
             <Button type="submit" className={styles.submit} disabled={loading}>
               {loading && <LoaderCircle className={styles.spinner} aria-hidden="true" />}
+              {!loading && <LockKeyhole aria-hidden="true" />}
               {phase === "redirect" ? "Redirection en cours…" : loading ? "Connexion en cours…" : "Se connecter"}
             </Button>
           </form>
 
-          <nav aria-label="Informations institutionnelles" className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-slate-300">
+          <nav aria-label="Informations institutionnelles" className={styles.legalLinks}>
             <Link href="/confidentialite" className="rounded underline underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300">Politique de confidentialité</Link>
             <Link href="/conditions-utilisation" className="rounded underline underline-offset-4 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sky-300">Conditions d’utilisation</Link>
           </nav>
 
-          <div className={styles.panelMeta}>
-            <span>Version 1.0 · Accès sécurisé</span>
-            <span>Administration CNAC</span>
-          </div>
           <p className={styles.platformLabel}>Plateforme du référentiel sportif national</p>
-          <p className={styles.signature} aria-label="Design par DS Concept"><span>Design by</span><strong>DS Concept</strong></p>
+          <p className={styles.signature} aria-label="Design par DS Concept"><span>Propulsed by</span><strong>DS Concept</strong></p>
         </div>
       </aside>
     </main>

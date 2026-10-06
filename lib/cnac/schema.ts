@@ -239,6 +239,7 @@ export const CNAC_HEADERS = {
     "id_club_cnac",
     "id_equipe_cnac"
   ],
+  "AFFILIATIONS_COACHS": ["id_affiliation_coach", "id_coach_cnac", "id_club_cnac", "statut", "observations"],
   "COACHS": [
     "id_coach_cnac",
     "id_federation",
@@ -367,6 +368,7 @@ export const CNAC_KEYS: Record<CnacSheet,string> = {
   "EQUIPES": "id_equipe_cnac",
   "PERSONNES_CONTACT_ENTITES": "id_contact_entite",
   "ATHLETES": "id_athlete_cnac",
+  "AFFILIATIONS_COACHS": "id_affiliation_coach",
   "COACHS": "id_coach_cnac",
   "OFFICIELS": "id_officiel_cnac",
   "MEDECINS": "id_medecin_cnac",
@@ -374,6 +376,7 @@ export const CNAC_KEYS: Record<CnacSheet,string> = {
   "AUTRES": "id_autre_acteur_cnac"
 }
 export const CNAC_GROUPS = {
+  "ACTEURS_AFFILIATIONS": ["AFFILIATIONS_COACHS"],
   "REFERENTIEL": [
     "SPORTS",
     "DISCIPLINES",

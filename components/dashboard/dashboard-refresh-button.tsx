@@ -31,7 +31,7 @@ export function DashboardRefreshButton() {
   }
 
   return <div className="flex items-center gap-2">
-    <Button variant="outline" size="sm" onClick={refresh} disabled={state === "loading"} className="gap-2 border-border/80 bg-card/80 shadow-[0_6px_16px_rgba(7,25,54,0.06)] hover:border-primary/40 hover:text-primary">
+    <Button aria-label={state === "loading" ? "Actualisation…" : state === "success" ? "Actualisé" : "Actualiser"} variant="outline" size="sm" onClick={refresh} disabled={state === "loading"} className="gap-2 border-border/80 bg-card/80 shadow-[0_6px_16px_rgba(7,25,54,0.06)] hover:border-primary/40 hover:text-primary">
       {state === "success" ? <Check className="h-4 w-4" /> : <RefreshCw className={`h-4 w-4 ${state === "loading" ? "animate-spin" : ""}`} />}
       <span className="hidden sm:inline">{state === "loading" ? "Actualisation…" : state === "success" ? "Actualisé" : "Actualiser"}</span>
     </Button>

@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation"
+import { ComingSoon } from "@/components/dashboard/coming-soon"
 
 export default function Page() {
-  redirect("/dashboard/equipes-nationales?nouveau=1")
+  return <ComingSoon title="Équipes nationales" icon="equipes" />
 }

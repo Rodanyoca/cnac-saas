@@ -7,6 +7,7 @@ import { LogOut, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ReactNode } from "react"
 import { useDashboardNavigation } from "./navigation-provider"
+import { NAVIGATION_SNAPSHOT_KEY } from "@/lib/navigation/navigation-snapshot"
 
 interface HeaderProps {
   title: string
@@ -47,6 +48,7 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
             try {
               const response = await apiFetch("/api/auth/logout", { method: "POST" })
               if (!response.ok) throw new Error()
+              try { sessionStorage.removeItem(NAVIGATION_SNAPSHOT_KEY) } catch { /* Stockage facultatif. */ }
               window.location.replace("/login")
             } catch { setLogoutError("Déconnexion impossible. Réessayez."); setLoggingOut(false) }
           }}
